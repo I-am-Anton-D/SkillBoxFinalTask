@@ -3,3 +3,9 @@ spring.datasource.username: root
 spring.datasource.password: 12345678
 spring.jpa.hibernate.ddl-auto: create
 spring.jpa.show-sql: true
+init.title: DevPub
+init.subtitle: Рассказы разработчиков
+init.phone: +7 903 666-44-55,
+init.email: mail@mail.ru
+init.copyright: Дмитроченко Антон
+init.copyrightFrom: 2019
