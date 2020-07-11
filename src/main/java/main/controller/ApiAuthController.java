@@ -2,6 +2,9 @@ package main.controller;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import main.model.CaptchaCode;
 import main.model.CaptchaCodesRepository;
 import main.model.Users;
@@ -25,29 +28,53 @@ public class ApiAuthController {
 
     @Value("${auth.captcha.liveTime}")
     private String captchaLiveTime;
-    private JSONObject response;
+    private JSONObject response, request = null;
+    private JSONParser parser = new JSONParser();
+    private Map<String, Integer> sessions = new HashMap<>();
+
     @Autowired
     private CaptchaCodesRepository captchaCodesRepository;
     @Autowired
     private UsersRepository usersRepository;
 
+    @PostMapping("/api/auth/login")
+    public String login(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
+
+        request = (JSONObject) parser.parse(body);
+        String password = (String) request.get("password");
+        String mail = (String) request.get("e_mail");
+
+        Users user = checkLoginPassword(mail, password);
+        sessions.put(httpRequest.getSession().getId(), user.getId());
+
+        return check(httpRequest);
+    }
+
     @GetMapping("/api/auth/check")
-    public String check() {
+    public String check(HttpServletRequest httpRequest) {
         response = new JSONObject();
-        response.put("result", "false");
+        if (sessions.containsKey(httpRequest.getSession().getId())) {
+            Users user = usersRepository.findById(sessions.get(httpRequest.getSession().getId())).get();
+            response.put("result", true);
+            response.put("user", transformUserToJson(user));
+        } else {
+            response.put("result", false);
+        }
+        return response.toJSONString();
+    }
+
+    @GetMapping("/api/auth/logout")
+    public String logout(HttpServletRequest httpRequest){
+        sessions.remove(httpRequest.getSession().getId());
+        response = new JSONObject();
+        response.put("result", true);
         return response.toJSONString();
     }
 
     @PostMapping("/api/auth/register")
-    public String register(@RequestBody String body) {
-        JSONParser parser = new JSONParser();
-        JSONObject request = null;
-        try {
-            request = (JSONObject) parser.parse(body);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
+    public String register(@RequestBody String body) throws ParseException {
 
+        request = (JSONObject) parser.parse(body);
         String mail = (String) request.get("e_mail");
         String password = (String) request.get("password");
         String name = (String) request.get("name");
@@ -100,5 +127,27 @@ public class ApiAuthController {
             if (user.getEmail().equals(mail)) return false;
         }
         return true;
+    }
+
+    public Users checkLoginPassword(String mail, String password) {
+        Iterable<Users> users = usersRepository.findAll();
+        for (Users user: users) {
+           if (user.getEmail().equals(mail) && user.getPassword().equals(Captcha.getMD5(password))) {
+               return user;
+           }
+        }
+        return null;
+    }
+
+    public JSONObject transformUserToJson(Users user) {
+        JSONObject jsonUser = new JSONObject();
+        jsonUser.put("id", user.getId());
+        jsonUser.put("name", user.getName());
+        jsonUser.put("photo", user.getPhoto());
+        jsonUser.put("email", user.getEmail());
+        jsonUser.put("moderation", true);
+        jsonUser.put("moderationCount", 10);
+        jsonUser.put("setting", true);
+        return jsonUser;
     }
 }
