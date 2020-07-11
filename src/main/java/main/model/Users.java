@@ -27,6 +27,17 @@ public class Users {
     @Column(columnDefinition = "text")
     private String photo;
 
+    public Users() {
+    }
+
+    public Users(@NotNull Date regTime, @NotNull String name,
+        @NotNull String email, @NotNull String password) {
+        this.regTime = regTime;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+    }
+
     public int getId() {
         return id;
     }

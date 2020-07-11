@@ -26,17 +26,29 @@ public class Captcha {
     final static int CAPTCHA_WIDTH = 90;
     final static int CAPTCHA_HEIGHT = 30;
     final static int CAPTCHA_FONT_HEIGHT = 20;
+    final static int CAPTCHA_LETTERS_COUNT = 5;
 
 
-    public static String generateCaptchaText(int captchaLength) {
+    public static String generateCaptchaText() {
         StringBuilder captchaBuffer = new StringBuilder();
         Random random = new Random();
 
-        while(captchaBuffer.length() < captchaLength) {
+        while(captchaBuffer.length() < CAPTCHA_LETTERS_COUNT) {
             int index = (int) (random.nextFloat() * LETTERS.length());
             captchaBuffer.append(LETTERS, index, index+1);
         }
         return captchaBuffer.toString();
+    }
+
+    public static boolean validate(String code, String secret, CaptchaCodesRepository repository) {
+        if (code.length()<CAPTCHA_LETTERS_COUNT) return false;
+        Iterable<CaptchaCode> codes = repository.findAll();
+        for (CaptchaCode captchaCode: codes) {
+            if (captchaCode.getSecretCode().equals(secret) && captchaCode.getCode().equals(code)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void save(CaptchaCode captchaCode, CaptchaCodesRepository repository) {
