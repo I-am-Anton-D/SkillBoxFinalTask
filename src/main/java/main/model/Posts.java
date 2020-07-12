@@ -56,7 +56,6 @@ public class Posts {
     public void setModerationStatus(ModerationStatus moderationStatus) {
         this.moderationStatus = moderationStatus;
     }
-
     public int getModeratorId() {
         return moderatorId;
     }

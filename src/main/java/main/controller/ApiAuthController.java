@@ -30,7 +30,7 @@ public class ApiAuthController {
     private String captchaLiveTime;
     private JSONObject response, request = null;
     private JSONParser parser = new JSONParser();
-    private Map<String, Integer> sessions = new HashMap<>();
+    public static Map<String, Integer> sessions = new HashMap<>();
 
     @Autowired
     private CaptchaCodesRepository captchaCodesRepository;
@@ -39,15 +39,19 @@ public class ApiAuthController {
 
     @PostMapping("/api/auth/login")
     public String login(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
-
+        response = new JSONObject();
         request = (JSONObject) parser.parse(body);
         String password = (String) request.get("password");
         String mail = (String) request.get("e_mail");
 
         Users user = checkLoginPassword(mail, password);
-        sessions.put(httpRequest.getSession().getId(), user.getId());
-
-        return check(httpRequest);
+        if (user!=null) {
+            sessions.put(httpRequest.getSession().getId(), user.getId());
+            return check(httpRequest);
+        } else {
+            response.put("result",false);
+            return response.toJSONString();
+        }
     }
 
     @GetMapping("/api/auth/check")
@@ -145,9 +149,14 @@ public class ApiAuthController {
         jsonUser.put("name", user.getName());
         jsonUser.put("photo", user.getPhoto());
         jsonUser.put("email", user.getEmail());
-        jsonUser.put("moderation", true);
+        if (user.getIsModerator()==1) {
+            jsonUser.put("moderation", true);
+            jsonUser.put("settings", true);
+        } else {
+            jsonUser.put("moderation", false);
+            jsonUser.put("settings", false);
+        }
         jsonUser.put("moderationCount", 10);
-        jsonUser.put("setting", true);
         return jsonUser;
     }
 }

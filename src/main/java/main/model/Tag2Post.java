@@ -16,6 +16,14 @@ public class Tag2Post {
     @NotNull
     private int tagId;
 
+    public Tag2Post() {
+    }
+
+    public Tag2Post(@NotNull int postId, @NotNull int tagId) {
+        this.postId = postId;
+        this.tagId = tagId;
+    }
+
     public int getId() {
         return id;
     }

@@ -16,7 +16,7 @@ public class GlobalSettings {
     @NotNull
     private String name;
     @NotNull
-    private String value;
+    private boolean value;
 
     public int getId() {
         return id;
@@ -42,11 +42,11 @@ public class GlobalSettings {
         this.name = name;
     }
 
-    public String getValue() {
+    public boolean getValue() {
         return value;
     }
 
-    public void setValue(String value) {
+    public void setValue(boolean value) {
         this.value = value;
     }
 }
