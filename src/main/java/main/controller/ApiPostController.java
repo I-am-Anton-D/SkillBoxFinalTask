@@ -2,7 +2,6 @@ package main.controller;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import javax.persistence.criteria.CriteriaBuilder.In;
 import javax.servlet.http.HttpServletRequest;
 import main.model.ModerationStatus;
 import main.model.Posts;
@@ -42,7 +40,7 @@ public class ApiPostController {
 
 
     private JSONObject response, request = null;
-    private JSONParser parser = new JSONParser();
+    private final JSONParser parser = new JSONParser();
     @Autowired
     private TagsRepository tagsRepository;
     @Autowired
@@ -52,6 +50,29 @@ public class ApiPostController {
     @Autowired
     private Tag2PostRepository tag2PostRepository;
 
+    @GetMapping("/api/post/search")
+    public String search(HttpServletRequest request) {
+        response = new JSONObject();
+        int offset = Integer.parseInt(request.getParameter("offset"));
+        int limit = Integer.parseInt(request.getParameter("limit"));
+        String query = request.getParameter("query");
+//        Can not make empty query, frontend error
+//        List<Posts> allPost = getVisiblePost();
+//        if (query.length()==0) {
+//            response =  transformListToJsonString(allPost.stream().skip(offset).limit(limit).collect(Collectors.toList()));
+//        }
+        List<Posts> searchedPost = getVisiblePost().stream()
+            .filter(p->p.getText().contains(query) || p.getTitle().contains(query))
+            .collect(Collectors.toList());
+        if (searchedPost.size()==0) {
+            response.put("result",false);
+        } else {
+            response =  transformListToJsonString(searchedPost.stream().skip(offset).limit(limit).collect(Collectors.toList()));
+        }
+        return response.toJSONString();
+    }
+
+
     @GetMapping("/api/post")
     public String getPosts(HttpServletRequest request) {
         response = new JSONObject();
@@ -59,13 +80,11 @@ public class ApiPostController {
         int limit = Integer.parseInt(request.getParameter("limit"));
         String mode = request.getParameter("mode");
         List<Posts> sortedList = getVisiblePost();
-        int count = sortedList.size();
 
         if (mode.equals("recent")) {
             sortedList = sortedList.stream().sorted(Comparator.comparing(Posts::getTime).reversed())
                 .collect(Collectors.toList());
         }
-
         if (mode.equals("popular")) {
             //TODO popular
         }
@@ -78,28 +97,7 @@ public class ApiPostController {
             sortedList = sortedList.stream().sorted(Comparator.comparing(Posts::getTime))
                 .collect(Collectors.toList());
         }
-        sortedList = sortedList.stream().skip(offset).limit(limit).collect(Collectors.toList());
-
-        JSONArray jsonArray = new JSONArray();
-        for (Posts post : sortedList) {
-            JSONObject jsonPost = new JSONObject();
-            jsonPost.put("id", post.getId());
-            jsonPost.put("time", formatTime(post.getTime()));
-            JSONObject jsonUser = new JSONObject();
-            jsonUser.put("id", post.getUserId());
-            jsonUser.put("name", usersRepository.findById(post.getUserId()).get().getName());
-            jsonPost.put("user", jsonUser);
-            jsonPost.put("title", post.getTitle());
-            jsonPost.put("announce", post.getText().replaceAll("\\<[^>]*>","").replaceAll("&nbsp;"," ").substring(0,ANNOUNCE_LENGTH));
-            jsonPost.put("likeCount", 0); //TODO LikeCount
-            jsonPost.put("dislikeCount", 0); //TODO dislikeCount
-            jsonPost.put("commentCount", 0); //TODO commentCount
-            jsonPost.put("viewCount", post.getViewCount());
-            jsonArray.add(jsonPost);
-
-        }
-        response.put("count", count);
-        response.put("posts", jsonArray);
+        response = transformListToJsonString(sortedList.stream().skip(offset).limit(limit).collect(Collectors.toList()));
         return response.toJSONString();
     }
 
@@ -219,5 +217,30 @@ public class ApiPostController {
         }
         double weight = frequencyTag/totalCount;
         return Double.parseDouble(new DecimalFormat("#.##").format(weight).replace(",","."));
+    }
+
+    public JSONObject transformListToJsonString(List<Posts> posts) {
+        response = new JSONObject();
+        JSONArray jsonArray = new JSONArray();
+        for (Posts post : posts) {
+            JSONObject jsonPost = new JSONObject();
+            jsonPost.put("id", post.getId());
+            jsonPost.put("time", formatTime(post.getTime()));
+            JSONObject jsonUser = new JSONObject();
+            jsonUser.put("id", post.getUserId());
+            jsonUser.put("name", usersRepository.findById(post.getUserId()).get().getName());
+            jsonPost.put("user", jsonUser);
+            jsonPost.put("title", post.getTitle());
+            jsonPost.put("announce", post.getText().replaceAll("\\<[^>]*>","").replaceAll("&nbsp;"," ").substring(0,ANNOUNCE_LENGTH));
+            jsonPost.put("likeCount", 0); //TODO LikeCount
+            jsonPost.put("dislikeCount", 0); //TODO dislikeCount
+            jsonPost.put("commentCount", 0); //TODO commentCount
+            jsonPost.put("viewCount", post.getViewCount());
+            jsonArray.add(jsonPost);
+
+        }
+        response.put("count", posts.size());
+        response.put("posts", jsonArray);
+        return response;
     }
 }
