@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletRequest;
 import main.model.CaptchaCode;
 import main.model.CaptchaCodesRepository;
+import main.model.PostsRepository;
 import main.model.Users;
 import main.model.UsersRepository;
 import org.json.simple.JSONObject;
@@ -36,6 +38,8 @@ public class ApiAuthController {
     private CaptchaCodesRepository captchaCodesRepository;
     @Autowired
     private UsersRepository usersRepository;
+    @Autowired
+    private PostsRepository postsRepository;
 
     @PostMapping("/api/auth/login")
     public String login(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
@@ -149,11 +153,17 @@ public class ApiAuthController {
         if (user.getIsModerator()==1) {
             jsonUser.put("moderation", true);
             jsonUser.put("settings", true);
+            jsonUser.put("moderationCount", calculateModerationCount());
         } else {
             jsonUser.put("moderation", false);
             jsonUser.put("settings", false);
         }
-        jsonUser.put("moderationCount", 10);
+
         return jsonUser;
+    }
+
+    private int calculateModerationCount() {
+        return (int) StreamSupport.stream(postsRepository.findAll().spliterator(),false)
+            .filter(p->p.getIsActive()==1 && p.getModerationStatus().ordinal()==0 && p.getModeratorId()==0).count();
     }
 }

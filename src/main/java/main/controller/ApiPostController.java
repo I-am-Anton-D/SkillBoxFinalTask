@@ -1,5 +1,6 @@
 package main.controller;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -62,38 +63,127 @@ public class ApiPostController {
     @Autowired
     private PostVotesRepository postVotesRepository;
 
+    @GetMapping("/api/post/my")
+    public String myPosts(HttpServletRequest request) {
+        response = new JSONObject();
+        if (!checkLogin(request.getSession())) return null;
+        int offset = Integer.parseInt(request.getParameter("offset"));
+        int limit = Integer.parseInt(request.getParameter("limit"));
+        int userId = getLoginUserId(request.getSession());
+        String status = request.getParameter("status");
+        byte active = -1;
+        int ordinal = -1;
+
+        if (status.equals("inactive")) {
+            active = 0;
+            ordinal = 0;
+        }
+        if (status.equals("pending")) {
+            active = 1;
+            ordinal = 0;
+        }
+        if (status.equals("declined")) {
+            active = 1;
+            ordinal = 1;
+        }
+        if (status.equals("published")) {
+            active = 1;
+            ordinal = 2;
+        }
+
+        int finalOrdinal = ordinal;
+        byte finalActive = active;
+        return  transformListPostToJsonObject(StreamSupport.stream(postsRepository.findAll().spliterator(), false)
+            .filter(p->p.getUserId()==userId && p.getIsActive()==finalActive && p.getModerationStatus().ordinal()==finalOrdinal)
+            .skip(offset).limit(limit).collect(Collectors.toList())).toJSONString();
+    }
+
+    @GetMapping("/api/post/moderation")
+    public String moderation(HttpServletRequest request) {
+        if (!checkLogin(request.getSession())) return null;
+        int offset = Integer.parseInt(request.getParameter("offset"));
+        int limit = Integer.parseInt(request.getParameter("limit"));
+        String status = request.getParameter("status").toUpperCase();
+        int ordinal = -1;
+        if (status.equals("NEW")) {
+            ordinal = 0;
+        }
+        if (status.equals("ACCEPTED")) {
+            ordinal = 1;
+        }
+        if (status.equals("DECLINED")) {
+            ordinal = 2;
+        }
+
+        int userId = getLoginUserId(request.getSession());
+        int finalOrdinal = ordinal;
+        return transformListPostToJsonObject(StreamSupport.stream(postsRepository.findAll().spliterator(), false)
+            .filter(p->p.getIsActive()==1 && (p.getModeratorId()==userId || p.getModeratorId()==0))
+            .filter(p->p.getModerationStatus().ordinal()== finalOrdinal).skip(offset).limit(limit)
+            .collect(Collectors.toList())).toJSONString();
+
+    }
+
+    @GetMapping("/api/post/byTag")
+    public String postByTag(HttpServletRequest request) {
+        int offset = Integer.parseInt(request.getParameter("offset"));
+        int limit = Integer.parseInt(request.getParameter("limit"));
+        String tag = request.getParameter("tag");
+        List<Integer> postsID = getPostByTag(tag);
+        return transformListPostToJsonObject(getVisiblePost().stream()
+            .filter(p->postsID.contains(p.getId())).skip(offset).limit(limit)
+            .collect(Collectors.toList())).toJSONString();
+    }
+
+    @GetMapping("/api/post/byDate")
+    public String postByDate(HttpServletRequest request) throws java.text.ParseException {
+        int offset = Integer.parseInt(request.getParameter("offset"));
+        int limit = Integer.parseInt(request.getParameter("limit"));
+        String date = request.getParameter("date");
+        Date queryDate = null;
+        if (!date.isEmpty()) {
+           queryDate = new SimpleDateFormat("yyyy-MM-dd").parse(date);
+        }
+        Date finalQueryDate = queryDate;
+        List<Posts> filterPost = getVisiblePost().stream().filter(
+            p -> new SimpleDateFormat("yyyy-MM-dd").format(p.getTime())
+                .equals(new SimpleDateFormat("yyyy-MM-dd").format(finalQueryDate)))
+            .skip(offset).limit(limit).collect(Collectors.toList());
+        return transformListPostToJsonObject(filterPost).toJSONString();
+    }
 
     @PostMapping("/api/comment")
     public String comment(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
         response = new JSONObject();
         if (checkLogin(httpRequest.getSession())) {
             request = (JSONObject) parser.parse(body);
-            Integer parentID = request.get("parent_id")!=null ? (int)((long)request.get("parent_id")) : null;
-            int postID = (int)((long)request.get("post_id"));
-            String text = (String)request.get("text");
+            Integer parentID = request.get("parent_id") != null ? (int) ((long) request.get("parent_id")) : null;
+            int postID = (int) ((long) request.get("post_id"));
+            String text = (String) request.get("text");
             int userId = getLoginUserId(httpRequest.getSession());
-            if (text.isEmpty() || text.length()<10) {
-                response.put("result",false);
+            if (text.isEmpty() || text.length() < 10) {
+                response.put("result", false);
                 JSONObject errors = new JSONObject();
                 errors.put("text", SMALL_COMMENT);
                 response.put("errors", errors);
                 return response.toJSONString();
             }
 
-            int commentId = postCommentsRepository.save(new PostComments(parentID, postID, userId,new Date(),text)).getId();
-            response.put("id",commentId);
+            int commentId = postCommentsRepository
+                .save(new PostComments(parentID, postID, userId, new Date(), text)).getId();
+            response.put("id", commentId);
         }
         return response.toJSONString();
     }
 
     @PostMapping("/api/post/dislike")
     public String dislikePost(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
-        return votePost(body, httpRequest, (byte)-1);
+        return votePost(body, httpRequest, (byte) -1);
     }
 
     @PostMapping("/api/post/like")
     public String likePost(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
-        return votePost(body, httpRequest, (byte)1);
+        return votePost(body, httpRequest, (byte) 1);
     }
 
     public String votePost(String body, HttpServletRequest httpRequest, byte value) throws ParseException {
@@ -156,7 +246,8 @@ public class ApiPostController {
                 .collect(Collectors.toList());
         }
         if (mode.equals("popular")) {
-            sortedList = sortedList.stream().sorted(Comparator.comparing(posts -> getComments(posts.getId()).size()))
+            sortedList = sortedList.stream()
+                .sorted(Comparator.comparing(posts -> getComments(posts.getId()).size()))
                 .collect(Collectors.toList());
             Collections.reverse(sortedList);
         }
@@ -230,7 +321,7 @@ public class ApiPostController {
             JSONObject tagObject = new JSONObject();
             tagObject.put("name", tag.getName());
             tagObject.put("weight", calculateTagWeight(tag.getId()));
-            if (query!=null && query.equals(tag.getName())) {
+            if (query != null && query.equals(tag.getName())) {
                 return tagObject.toJSONString();
             } else {
                 tagsArray.add(tagObject);
@@ -244,7 +335,7 @@ public class ApiPostController {
         return ApiAuthController.sessions.containsKey(session.getId());
     }
 
-    private int getLoginUserId(HttpSession session){
+    private int getLoginUserId(HttpSession session) {
         return ApiAuthController.sessions.get(session.getId());
     }
 
@@ -311,7 +402,7 @@ public class ApiPostController {
 
     private String getPlainText(String string) {
         string = string.replaceAll("\\<[^>]*>", "").replaceAll("&nbsp;", " ");
-        return string.substring(0, Math.min(ANNOUNCE_LENGTH, string.length()-1));
+        return string.substring(0, Math.min(ANNOUNCE_LENGTH, string.length() - 1));
     }
 
     private boolean checkHasLike(int postId, int userId, int value) {
@@ -360,5 +451,19 @@ public class ApiPostController {
         jsonUser.put("name", usersRepository.findById(id).get().getName());
         jsonUser.put("photo", usersRepository.findById(id).get().getPhoto());
         return jsonUser;
+    }
+
+    private List<Integer> getPostByTag(String tagName) {
+        int tagId = -1;
+        for (Tags tag: tagsRepository.findAll()) {
+           if (tag.getName().equals(tagName)) {
+               tagId = tag.getId();
+               break;
+           }
+        }
+        int finalTagId = tagId;
+        return StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false)
+            .filter(t->t.getTagId()== finalTagId).map(Tag2Post::getPostId)
+            .collect(Collectors.toList());
     }
 }
