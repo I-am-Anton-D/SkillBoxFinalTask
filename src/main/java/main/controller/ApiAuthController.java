@@ -158,7 +158,6 @@ public class ApiAuthController {
             jsonUser.put("moderation", false);
             jsonUser.put("settings", false);
         }
-
         return jsonUser;
     }
 

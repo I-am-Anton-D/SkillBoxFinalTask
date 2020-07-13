@@ -26,6 +26,7 @@ import main.model.Tag2Post;
 import main.model.Tag2PostRepository;
 import main.model.Tags;
 import main.model.TagsRepository;
+import main.model.Users;
 import main.model.UsersRepository;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -35,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -63,9 +65,90 @@ public class ApiPostController {
     @Autowired
     private PostVotesRepository postVotesRepository;
 
+    @PostMapping("/api/moderation")
+    public void doModeration(@RequestBody String body, HttpServletRequest httpServletRequest)
+        throws ParseException {
+        if (!checkLogin(httpServletRequest.getSession())) return;
+        int UserId = getLoginUserId(httpServletRequest.getSession());
+        if (usersRepository.findById(UserId).get().getIsModerator()!= 1) return;
+        request = (JSONObject) parser.parse(body);
+        int postID = (int)((long)request.get("post_id"));
+        String decision = (String) request.get("decision");
+
+        Posts post = postsRepository.findById(postID).get();
+        post.setModeratorId(UserId);
+        if (decision.equals("accept")) {
+            post.setModerationStatus(ModerationStatus.ACCEPTED);
+        } else {
+            post.setModerationStatus(ModerationStatus.DECLINED);
+        }
+        postsRepository.save(post);
+    }
+
+
+
+    @PutMapping("/api/post/{id}")
+    public String editPost(@PathVariable int id, @RequestBody String body, HttpServletRequest httpServletRequest)
+        throws ParseException, java.text.ParseException {
+        if (!checkLogin(httpServletRequest.getSession())) return null;
+        int UserId = getLoginUserId(httpServletRequest.getSession());
+        boolean isModerator = usersRepository.findById(UserId).get().getIsModerator() == 1;
+
+        response = new JSONObject();
+        request = (JSONObject) parser.parse(body);
+        long createTime = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse((String) request.get("time")).getTime();
+        createTime = Math.max(createTime, System.currentTimeMillis());
+        long active = (long) request.get("active");
+        String title = (String) request.get("title");
+        JSONArray tags = (JSONArray) request.get("tags");
+        String text = (String) request.get("text");
+
+        JSONObject errors = new JSONObject();
+        if (title.length() < 4) {
+            errors.put("title", NO_TITLE);
+        }
+        if (text.length() < 50) {
+            errors.put("text", SMALL_TEXT);
+        }
+        if (errors.size() != 0) {
+            response.put("result", false);
+            response.put("errors", errors);
+        } else {
+
+            Posts post = postsRepository.findById(id).get();
+            post.setIsActive((byte) active);
+            if (!isModerator) {
+                post.setModerationStatus(ModerationStatus.NEW);
+            }
+            post.setTime(new Date(createTime));
+            post.setTitle(title);
+            post.setText(text);
+
+            postsRepository.save(post);
+            Iterable<Tag2Post> oldTags = tag2PostRepository.findAll();
+            for (Tag2Post tag:oldTags) {
+                if (tag.getPostId()==id) {
+                    tag2PostRepository.delete(tag);
+                }
+            }
+            int tagId = -1;
+            for (int i = 0; i < tags.size(); i++) {
+                for (Tags tag : tagsRepository.findAll()) {
+                    if (tag.getName().equals(tags.get(i))) {
+                        tagId = tag.getId();
+                        break;
+                    }
+                }
+                tag2PostRepository.save(new Tag2Post(id, tagId));
+            }
+            response.put("result", true);
+        }
+        return response.toJSONString();
+    }
+
     @GetMapping("/api/post/my")
     public String myPosts(HttpServletRequest request) {
-        response = new JSONObject();
+
         if (!checkLogin(request.getSession())) return null;
         int offset = Integer.parseInt(request.getParameter("offset"));
         int limit = Integer.parseInt(request.getParameter("limit"));
@@ -84,18 +167,20 @@ public class ApiPostController {
         }
         if (status.equals("declined")) {
             active = 1;
-            ordinal = 1;
+            ordinal = 2;
         }
         if (status.equals("published")) {
             active = 1;
-            ordinal = 2;
+            ordinal = 1;
         }
 
         int finalOrdinal = ordinal;
         byte finalActive = active;
-        return  transformListPostToJsonObject(StreamSupport.stream(postsRepository.findAll().spliterator(), false)
+        List<Posts> filterPosts = StreamSupport.stream(postsRepository.findAll().spliterator(), false)
             .filter(p->p.getUserId()==userId && p.getIsActive()==finalActive && p.getModerationStatus().ordinal()==finalOrdinal)
-            .skip(offset).limit(limit).collect(Collectors.toList())).toJSONString();
+            .skip(offset).limit(limit).collect(Collectors.toList());
+        List<Posts> cutPosts = filterPosts.stream().skip(offset).limit(limit).collect(Collectors.toList());
+        return  transformListPostToJsonObject(cutPosts,filterPosts.size()).toJSONString();
     }
 
     @GetMapping("/api/post/moderation")
@@ -117,11 +202,12 @@ public class ApiPostController {
 
         int userId = getLoginUserId(request.getSession());
         int finalOrdinal = ordinal;
-        return transformListPostToJsonObject(StreamSupport.stream(postsRepository.findAll().spliterator(), false)
+        List<Posts> filterPosts = StreamSupport.stream(postsRepository.findAll().spliterator(), false)
             .filter(p->p.getIsActive()==1 && (p.getModeratorId()==userId || p.getModeratorId()==0))
-            .filter(p->p.getModerationStatus().ordinal()== finalOrdinal).skip(offset).limit(limit)
-            .collect(Collectors.toList())).toJSONString();
+            .filter(p->p.getModerationStatus().ordinal()== finalOrdinal).collect(Collectors.toList());
+        List<Posts> cutPosts = filterPosts.stream().skip(offset).limit(limit).collect(Collectors.toList());
 
+        return transformListPostToJsonObject(cutPosts, filterPosts.size()).toJSONString();
     }
 
     @GetMapping("/api/post/byTag")
@@ -132,7 +218,7 @@ public class ApiPostController {
         List<Integer> postsID = getPostByTag(tag);
         return transformListPostToJsonObject(getVisiblePost().stream()
             .filter(p->postsID.contains(p.getId())).skip(offset).limit(limit)
-            .collect(Collectors.toList())).toJSONString();
+            .collect(Collectors.toList()),postsID.size()).toJSONString();
     }
 
     @GetMapping("/api/post/byDate")
@@ -148,8 +234,9 @@ public class ApiPostController {
         List<Posts> filterPost = getVisiblePost().stream().filter(
             p -> new SimpleDateFormat("yyyy-MM-dd").format(p.getTime())
                 .equals(new SimpleDateFormat("yyyy-MM-dd").format(finalQueryDate)))
-            .skip(offset).limit(limit).collect(Collectors.toList());
-        return transformListPostToJsonObject(filterPost).toJSONString();
+            .collect(Collectors.toList());
+        List<Posts> cutPosts = filterPost.stream().skip(offset).limit(limit).collect(Collectors.toList());
+        return transformListPostToJsonObject(cutPosts, filterPost.size()).toJSONString();
     }
 
     @PostMapping("/api/comment")
@@ -204,12 +291,16 @@ public class ApiPostController {
 
 
     @GetMapping("/api/post/{id}")
-    public String getPost(@PathVariable int id) {
+    public String getPost(@PathVariable int id, HttpServletRequest request) {
         response = new JSONObject();
+        String referer = request.getHeader("referer");
         response = transformPostToJsonObject(postsRepository.findById(id).get());
         Posts post = postsRepository.findById(id).get();
         post.setViewCount(post.getViewCount() + 1);
         postsRepository.save(post);
+        if (referer!=null && referer.contains("edit")) {
+            response.put("time", new SimpleDateFormat("yyyy-MM-dd HH:mm").format(post.getTime()));
+        }
         response.put("comments", getComments(id));
         response.put("tags", getTags(id));
         return response.toJSONString();
@@ -228,7 +319,7 @@ public class ApiPostController {
             response.put("result", false);
         } else {
             response = transformListPostToJsonObject(searchedPosts.stream().skip(offset)
-                .limit(limit).collect(Collectors.toList()));
+                .limit(limit).collect(Collectors.toList()),searchedPosts.size());
         }
         return response.toJSONString();
     }
@@ -261,7 +352,7 @@ public class ApiPostController {
                 .collect(Collectors.toList());
         }
         response = transformListPostToJsonObject(sortedList.stream().skip(offset)
-            .limit(limit).collect(Collectors.toList()));
+            .limit(limit).collect(Collectors.toList()), getVisiblePost().size());
         return response.toJSONString();
     }
 
@@ -270,7 +361,7 @@ public class ApiPostController {
         throws ParseException, java.text.ParseException {
         response = new JSONObject();
         request = (JSONObject) parser.parse(body);
-        long createTime = new SimpleDateFormat("yyyy-MM-dd hh:mm").parse((String) request.get("time")).getTime();
+        long createTime = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse((String) request.get("time")).getTime();
         createTime = Math.max(createTime, System.currentTimeMillis());
         long active = (long) request.get("active");
         String title = (String) request.get("title");
@@ -357,10 +448,10 @@ public class ApiPostController {
     }
 
     private List<Posts> getVisiblePost() {
-        //TODO Fix Moderation status
+
         Iterable<Posts> posts = postsRepository.findAll();
         return StreamSupport.stream(posts.spliterator(), false)
-            .filter(p -> p.getIsActive() == 1 && p.getModerationStatus() == ModerationStatus.NEW
+            .filter(p -> p.getIsActive() == 1 && p.getModerationStatus() == ModerationStatus.ACCEPTED
                 && p.getTime().getTime() <= System.currentTimeMillis())
             .collect(Collectors.toList());
     }
@@ -376,11 +467,11 @@ public class ApiPostController {
         return Double.parseDouble(new DecimalFormat("#.##").format(frequencyTag / totalCount).replace(",", "."));
     }
 
-    private JSONObject transformListPostToJsonObject(List<Posts> posts) {
+    private JSONObject transformListPostToJsonObject(List<Posts> posts, int size) {
         response = new JSONObject();
         JSONArray jsonArray = new JSONArray();
         posts.forEach(post -> jsonArray.add(transformPostToJsonObject(post)));
-        response.put("count", posts.size());
+        response.put("count", size);
         response.put("posts", jsonArray);
         return response;
     }
@@ -391,6 +482,7 @@ public class ApiPostController {
         jsonPost.put("time", formatTime(post.getTime()));
         jsonPost.put("user", getUserJson(post.getUserId()));
         jsonPost.put("title", post.getTitle());
+        jsonPost.put("active", post.getIsActive());
         jsonPost.put("announce", getPlainText(post.getText()));
         jsonPost.put("text", post.getText());
         jsonPost.put("likeCount", getLikes(post.getId(), 1));
