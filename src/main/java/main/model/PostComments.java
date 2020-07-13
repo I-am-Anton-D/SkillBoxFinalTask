@@ -13,7 +13,7 @@ public class PostComments {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
-    private int parentId;
+    private Integer parentId;
     @NotNull
     private int postId;
     @NotNull
@@ -24,6 +24,18 @@ public class PostComments {
     @Column(columnDefinition = "text")
     private String text;
 
+    public PostComments() {
+    }
+
+    public PostComments(Integer parentId, @NotNull int postId, @NotNull int userId,
+        @NotNull Date time, @NotNull String text) {
+        this.parentId = parentId;
+        this.postId = postId;
+        this.userId = userId;
+        this.time = time;
+        this.text = text;
+    }
+
     public int getId() {
         return id;
     }
@@ -32,11 +44,11 @@ public class PostComments {
         this.id = id;
     }
 
-    public int getParentId() {
+    public Integer getParentId() {
         return parentId;
     }
 
-    public void setParentId(int parentId) {
+    public void setParentId(Integer parentId) {
         this.parentId = parentId;
     }
 

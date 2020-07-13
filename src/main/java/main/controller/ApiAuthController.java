@@ -43,7 +43,6 @@ public class ApiAuthController {
         request = (JSONObject) parser.parse(body);
         String password = (String) request.get("password");
         String mail = (String) request.get("e_mail");
-
         Users user = checkLoginPassword(mail, password);
         if (user!=null) {
             sessions.put(httpRequest.getSession().getId(), user.getId());
@@ -77,14 +76,12 @@ public class ApiAuthController {
 
     @PostMapping("/api/auth/register")
     public String register(@RequestBody String body) throws ParseException {
-
         request = (JSONObject) parser.parse(body);
         String mail = (String) request.get("e_mail");
         String password = (String) request.get("password");
         String name = (String) request.get("name");
         String captcha = (String) request.get("captcha");
         String secret = (String) request.get("captcha_secret");
-
         response = new JSONObject();
         JSONObject errors = new JSONObject();
         if (!Captcha.validate(captcha,secret,captchaCodesRepository)) {

@@ -21,6 +21,17 @@ public class PostVotes {
     @NotNull
     private byte value;
 
+    public PostVotes() {
+    }
+
+    public PostVotes(@NotNull int userId, @NotNull int postId,
+        @NotNull Date time, @NotNull byte value) {
+        this.userId = userId;
+        this.postId = postId;
+        this.time = time;
+        this.value = value;
+    }
+
     public int getId() {
         return id;
     }
