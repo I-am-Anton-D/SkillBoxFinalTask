@@ -5,10 +5,12 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 @Entity
-public class PostVotes {
+@Table(name = "post_votes")
+public class PostVote {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
@@ -21,10 +23,8 @@ public class PostVotes {
     @NotNull
     private byte value;
 
-    public PostVotes() {
-    }
-
-    public PostVotes(@NotNull int userId, @NotNull int postId,
+    public PostVote() {}
+    public PostVote(@NotNull int userId, @NotNull int postId,
         @NotNull Date time, @NotNull byte value) {
         this.userId = userId;
         this.postId = postId;
@@ -35,40 +35,16 @@ public class PostVotes {
     public int getId() {
         return id;
     }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
     public int getUserId() {
         return userId;
     }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
-
     public int getPostId() {
         return postId;
     }
-
-    public void setPostId(int postId) {
-        this.postId = postId;
-    }
-
     public Date getTime() {
         return time;
     }
-
-    public void setTime(Date time) {
-        this.time = time;
-    }
-
     public byte getValue() {
         return value;
-    }
-
-    public void setValue(byte value) {
-        this.value = value;
     }
 }

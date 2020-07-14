@@ -1,32 +1,28 @@
 package main.controller;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import javax.persistence.criteria.CriteriaBuilder.In;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import main.model.ModerationStatus;
-import main.model.PostComments;
+import main.model.PostComment;
 import main.model.PostCommentsRepository;
-import main.model.PostVotes;
+import main.model.PostVote;
 import main.model.PostVotesRepository;
 import main.model.Posts;
 import main.model.PostsRepository;
 import main.model.Tag2Post;
 import main.model.Tag2PostRepository;
-import main.model.Tags;
+import main.model.Tag;
 import main.model.TagsRepository;
-import main.model.Users;
+import main.model.User;
 import main.model.UsersRepository;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -70,7 +66,7 @@ public class ApiPostController {
         throws ParseException {
         if (!checkLogin(httpServletRequest.getSession())) return;
         int UserId = getLoginUserId(httpServletRequest.getSession());
-        if (usersRepository.findById(UserId).get().getIsModerator()!= 1) return;
+        if (!getUserById(UserId).isModerator()) return;
         request = (JSONObject) parser.parse(body);
         int postID = (int)((long)request.get("post_id"));
         String decision = (String) request.get("decision");
@@ -85,14 +81,11 @@ public class ApiPostController {
         postsRepository.save(post);
     }
 
-
-
     @PutMapping("/api/post/{id}")
     public String editPost(@PathVariable int id, @RequestBody String body, HttpServletRequest httpServletRequest)
         throws ParseException, java.text.ParseException {
         if (!checkLogin(httpServletRequest.getSession())) return null;
         int UserId = getLoginUserId(httpServletRequest.getSession());
-        boolean isModerator = usersRepository.findById(UserId).get().getIsModerator() == 1;
 
         response = new JSONObject();
         request = (JSONObject) parser.parse(body);
@@ -117,7 +110,7 @@ public class ApiPostController {
 
             Posts post = postsRepository.findById(id).get();
             post.setIsActive((byte) active);
-            if (!isModerator) {
+            if (!getUserById(UserId).isModerator()) {
                 post.setModerationStatus(ModerationStatus.NEW);
             }
             post.setTime(new Date(createTime));
@@ -133,7 +126,7 @@ public class ApiPostController {
             }
             int tagId = -1;
             for (int i = 0; i < tags.size(); i++) {
-                for (Tags tag : tagsRepository.findAll()) {
+                for (Tag tag : tagsRepository.findAll()) {
                     if (tag.getName().equals(tags.get(i))) {
                         tagId = tag.getId();
                         break;
@@ -257,7 +250,7 @@ public class ApiPostController {
             }
 
             int commentId = postCommentsRepository
-                .save(new PostComments(parentID, postID, userId, new Date(), text)).getId();
+                .save(new PostComment(parentID, postID, userId, new Date(), text)).getId();
             response.put("id", commentId);
         }
         return response.toJSONString();
@@ -280,7 +273,7 @@ public class ApiPostController {
             int postId = (int) ((long) request.get("post_id"));
             int userID = getLoginUserId(httpRequest.getSession());
             if (!checkHasLike(postId, userID, value)) {
-                postVotesRepository.save(new PostVotes(userID, postId, new Date(), value));
+                postVotesRepository.save(new PostVote(userID, postId, new Date(), value));
                 response.put("result", true);
                 return response.toJSONString();
             }
@@ -296,10 +289,11 @@ public class ApiPostController {
         String referer = request.getHeader("referer");
         response = transformPostToJsonObject(postsRepository.findById(id).get());
         Posts post = postsRepository.findById(id).get();
-        post.setViewCount(post.getViewCount() + 1);
-        postsRepository.save(post);
         if (referer!=null && referer.contains("edit")) {
             response.put("time", new SimpleDateFormat("yyyy-MM-dd HH:mm").format(post.getTime()));
+        } else {
+            post.setViewCount(post.getViewCount() + 1);
+            postsRepository.save(post);
         }
         response.put("comments", getComments(id));
         response.put("tags", getTags(id));
@@ -375,6 +369,7 @@ public class ApiPostController {
         if (text.length() < 50) {
             errors.put("text", SMALL_TEXT);
         }
+
         if (errors.size() != 0) {
             response.put("result", false);
             response.put("errors", errors);
@@ -388,15 +383,8 @@ public class ApiPostController {
             post.setText(text);
             post.setViewCount(0);
             int postId = postsRepository.save(post).getId();
-            int tagId = -1;
             for (int i = 0; i < tags.size(); i++) {
-                for (Tags tag : tagsRepository.findAll()) {
-                    if (tag.getName().equals(tags.get(i))) {
-                        tagId = tag.getId();
-                        break;
-                    }
-                }
-                tag2PostRepository.save(new Tag2Post(postId, tagId));
+               tag2PostRepository.save(new Tag2Post(postId, getTagIdByName((String) tags.get(i))));
             }
             response.put("result", true);
         }
@@ -406,12 +394,14 @@ public class ApiPostController {
     @GetMapping("/api/tag")
     public String tag(HttpServletRequest request) {
         response = new JSONObject();
+        double maxWeight = StreamSupport.stream(tagsRepository.findAll().spliterator(), false)
+            .map(t->calculateTagWeight(t.getId())).max(Comparator.comparing(Double::doubleValue)).get();
         String query = request.getParameter("query");
         JSONArray tagsArray = new JSONArray();
-        for (Tags tag : tagsRepository.findAll()) {
+        for (Tag tag : tagsRepository.findAll()) {
             JSONObject tagObject = new JSONObject();
             tagObject.put("name", tag.getName());
-            tagObject.put("weight", calculateTagWeight(tag.getId()));
+            tagObject.put("weight", calculateTagWeight(tag.getId())/maxWeight);
             if (query != null && query.equals(tag.getName())) {
                 return tagObject.toJSONString();
             } else {
@@ -448,19 +438,14 @@ public class ApiPostController {
     }
 
     private List<Posts> getVisiblePost() {
-
-        Iterable<Posts> posts = postsRepository.findAll();
-        return StreamSupport.stream(posts.spliterator(), false)
+        return StreamSupport.stream(postsRepository.findAll().spliterator(), false)
             .filter(p -> p.getIsActive() == 1 && p.getModerationStatus() == ModerationStatus.ACCEPTED
                 && p.getTime().getTime() <= System.currentTimeMillis())
             .collect(Collectors.toList());
     }
 
     private double calculateTagWeight(int tagId) {
-        Set<Integer> visibleIds = new HashSet<>();
-        for (Posts post : getVisiblePost()) {
-            visibleIds.add(post.getId());
-        }
+        List<Integer> visibleIds = getVisiblePost().stream().map(Posts::getId).collect(Collectors.toList());
         double totalCount = visibleIds.size();
         long frequencyTag = StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false).
             filter(tag -> visibleIds.contains(tag.getPostId()) && tag.getTagId() == tagId).count();
@@ -498,7 +483,7 @@ public class ApiPostController {
     }
 
     private boolean checkHasLike(int postId, int userId, int value) {
-        for (PostVotes v : postVotesRepository.findAll()) {
+        for (PostVote v : postVotesRepository.findAll()) {
             if (v.getUserId() == userId && v.getPostId() == postId && v.getValue() == value) {
                 return true;
             }
@@ -513,7 +498,7 @@ public class ApiPostController {
 
     private JSONArray getComments(int postId) {
         JSONArray arrayOfComments = new JSONArray();
-        for (PostComments c : postCommentsRepository.findAll()) {
+        for (PostComment c : postCommentsRepository.findAll()) {
             if (c.getPostId() == postId) {
                 JSONObject jsonComment = new JSONObject();
                 jsonComment.put("id", c.getId());
@@ -529,33 +514,32 @@ public class ApiPostController {
 
     private JSONArray getTags(int id) {
         JSONArray arrayOfTags = new JSONArray();
-        for (Tag2Post tag : tag2PostRepository.findAll()) {
-            if (tag.getPostId() == id) {
-                arrayOfTags.add(tagsRepository.findById(tag.getTagId()).get().getName());
-            }
-        }
+        StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false).filter(t->t.getPostId()==id)
+            .forEach(t->arrayOfTags.add(tagsRepository.findById(t.getTagId()).get().getName()));
         return arrayOfTags;
     }
 
     private JSONObject getUserJson(int id) {
         JSONObject jsonUser = new JSONObject();
         jsonUser.put("id", id);
-        jsonUser.put("name", usersRepository.findById(id).get().getName());
-        jsonUser.put("photo", usersRepository.findById(id).get().getPhoto());
+        jsonUser.put("name", getUserById(id).getName());
+        jsonUser.put("photo", getUserById(id).getPhoto());
         return jsonUser;
     }
 
     private List<Integer> getPostByTag(String tagName) {
-        int tagId = -1;
-        for (Tags tag: tagsRepository.findAll()) {
-           if (tag.getName().equals(tagName)) {
-               tagId = tag.getId();
-               break;
-           }
-        }
-        int finalTagId = tagId;
         return StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false)
-            .filter(t->t.getTagId()== finalTagId).map(Tag2Post::getPostId)
+            .filter(t -> t.getTagId() == getTagIdByName(tagName)).map(Tag2Post::getPostId)
             .collect(Collectors.toList());
     }
+
+    private int getTagIdByName(String tagName) {
+        return StreamSupport.stream(tagsRepository.findAll().spliterator(), false)
+            .filter(t -> t.getName().equals(tagName)).findFirst().get().getId();
+    }
+
+    private User getUserById(int id) {
+        return usersRepository.findById(id).get();
+    }
+
 }

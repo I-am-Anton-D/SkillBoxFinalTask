@@ -6,15 +6,18 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 @Entity
-public class Users {
+@Table(name = "users")
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
     @NotNull
-    private byte isModerator;
+    @Column(name = "is_moderator")
+    private byte moderator;
     @NotNull
     private Date regTime;
     @NotNull
@@ -27,10 +30,8 @@ public class Users {
     @Column(columnDefinition = "text")
     private String photo;
 
-    public Users() {
-    }
-
-    public Users(@NotNull Date regTime, @NotNull String name,
+    public User() {}
+    public User(@NotNull Date regTime, @NotNull String name,
         @NotNull String email, @NotNull String password) {
         this.regTime = regTime;
         this.name = name;
@@ -46,20 +47,16 @@ public class Users {
         this.id = id;
     }
 
-    public byte getIsModerator() {
-        return isModerator;
+    public byte getModerator() {
+        return moderator;
     }
 
-    public void setIsModerator(byte isModerator) {
-        this.isModerator = isModerator;
+    public void setModerator(byte moderator) {
+        this.moderator = moderator;
     }
 
     public Date getRegTime() {
         return regTime;
-    }
-
-    public void setRegTime(Date regTime) {
-        this.regTime = regTime;
     }
 
     public String getName() {
@@ -100,5 +97,9 @@ public class Users {
 
     public void setPhoto(String photo) {
         this.photo = photo;
+    }
+
+    public boolean isModerator() {
+        return getModerator() == 1;
     }
 }

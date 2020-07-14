@@ -9,7 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 import main.model.CaptchaCode;
 import main.model.CaptchaCodesRepository;
 import main.model.PostsRepository;
-import main.model.Users;
+import main.model.User;
 import main.model.UsersRepository;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import static main.model.ModerationStatus.*;
 
 @RestController
 public class ApiAuthController {
@@ -31,23 +32,18 @@ public class ApiAuthController {
     @Value("${auth.captcha.liveTime}")
     private String captchaLiveTime;
     private JSONObject response, request = null;
-    private JSONParser parser = new JSONParser();
+    private final JSONParser parser = new JSONParser();
     public static Map<String, Integer> sessions = new HashMap<>();
 
-    @Autowired
-    private CaptchaCodesRepository captchaCodesRepository;
-    @Autowired
-    private UsersRepository usersRepository;
-    @Autowired
-    private PostsRepository postsRepository;
+    @Autowired private CaptchaCodesRepository captchaCodesRepository;
+    @Autowired private UsersRepository usersRepository;
+    @Autowired private PostsRepository postsRepository;
 
     @PostMapping("/api/auth/login")
     public String login(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
         response = new JSONObject();
         request = (JSONObject) parser.parse(body);
-        String password = (String) request.get("password");
-        String mail = (String) request.get("e_mail");
-        Users user = checkLoginPassword(mail, password);
+        User user = checkLoginPassword((String) request.get("e_mail"), (String) request.get("password"));
         if (user!=null) {
             sessions.put(httpRequest.getSession().getId(), user.getId());
             return check(httpRequest);
@@ -61,7 +57,7 @@ public class ApiAuthController {
     public String check(HttpServletRequest httpRequest) {
         response = new JSONObject();
         if (sessions.containsKey(httpRequest.getSession().getId())) {
-            Users user = usersRepository.findById(sessions.get(httpRequest.getSession().getId())).get();
+            User user = usersRepository.findById(sessions.get(httpRequest.getSession().getId())).get();
             response.put("result", true);
             response.put("user", transformUserToJson(user));
         } else {
@@ -105,7 +101,7 @@ public class ApiAuthController {
             response.put("errors",errors);
         }
         else {
-            usersRepository.save(new Users(new Date(), name, mail, Captcha.getMD5(password)));
+            usersRepository.save(new User(new Date(), name, mail, Captcha.getMD5(password)));
             response.put("result",true);
         }
         return response.toJSONString();
@@ -127,16 +123,14 @@ public class ApiAuthController {
     }
 
     public boolean checkFreeMail(String mail) {
-        Iterable<Users> users = usersRepository.findAll();
-        for (Users user: users) {
+        for (User user:usersRepository.findAll()) {
             if (user.getEmail().equals(mail)) return false;
         }
         return true;
     }
 
-    public Users checkLoginPassword(String mail, String password) {
-        Iterable<Users> users = usersRepository.findAll();
-        for (Users user: users) {
+    public User checkLoginPassword(String mail, String password) {
+        for (User user: usersRepository.findAll()) {
            if (user.getEmail().equals(mail) && user.getPassword().equals(Captcha.getMD5(password))) {
                return user;
            }
@@ -144,13 +138,13 @@ public class ApiAuthController {
         return null;
     }
 
-    public JSONObject transformUserToJson(Users user) {
+    public JSONObject transformUserToJson(User user) {
         JSONObject jsonUser = new JSONObject();
         jsonUser.put("id", user.getId());
         jsonUser.put("name", user.getName());
         jsonUser.put("photo", user.getPhoto());
         jsonUser.put("email", user.getEmail());
-        if (user.getIsModerator()==1) {
+        if (user.isModerator()) {
             jsonUser.put("moderation", true);
             jsonUser.put("settings", true);
             jsonUser.put("moderationCount", calculateModerationCount());
@@ -163,6 +157,6 @@ public class ApiAuthController {
 
     private int calculateModerationCount() {
         return (int) StreamSupport.stream(postsRepository.findAll().spliterator(),false)
-            .filter(p->p.getIsActive()==1 && p.getModerationStatus().ordinal()==0 && p.getModeratorId()==0).count();
+            .filter(p->p.getIsActive()==1 && p.getModerationStatus()==NEW).count();
     }
 }

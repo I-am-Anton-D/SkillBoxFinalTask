@@ -6,10 +6,12 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 @Entity
-public class PostComments {
+@Table(name = "post_comments")
+public class PostComment {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
@@ -24,10 +26,8 @@ public class PostComments {
     @Column(columnDefinition = "text")
     private String text;
 
-    public PostComments() {
-    }
-
-    public PostComments(Integer parentId, @NotNull int postId, @NotNull int userId,
+    public PostComment() {}
+    public PostComment(Integer parentId, @NotNull int postId, @NotNull int userId,
         @NotNull Date time, @NotNull String text) {
         this.parentId = parentId;
         this.postId = postId;
@@ -40,47 +40,22 @@ public class PostComments {
         return id;
     }
 
-    public void setId(int id) {
-        this.id = id;
-    }
-
     public Integer getParentId() {
         return parentId;
-    }
-
-    public void setParentId(Integer parentId) {
-        this.parentId = parentId;
     }
 
     public int getPostId() {
         return postId;
     }
 
-    public void setPostId(int postId) {
-        this.postId = postId;
-    }
-
     public int getUserId() {
         return userId;
-    }
-
-    public void setUserId(int userId) {
-        this.userId = userId;
     }
 
     public Date getTime() {
         return time;
     }
-
-    public void setTime(Date time) {
-        this.time = time;
-    }
-
     public String getText() {
         return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
     }
 }

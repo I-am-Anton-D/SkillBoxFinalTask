@@ -22,9 +22,7 @@ public class CaptchaCode {
     @Column(columnDefinition = "TINYTEXT")
     private String secretCode;
 
-    public CaptchaCode() {
-    }
-
+    public CaptchaCode() {}
     public CaptchaCode(@NotNull Date time, @NotNull String code,
         @NotNull String secretCode) {
         this.time = time;
@@ -32,35 +30,13 @@ public class CaptchaCode {
         this.secretCode = secretCode;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
     public Date getTime() {
         return time;
     }
-
-    public void setTime(Date time) {
-        this.time = time;
-    }
-
     public String getCode() {
         return code;
     }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
     public String getSecretCode() {
         return secretCode;
-    }
-
-    public void setSecretCode(String secretCode) {
-        this.secretCode = secretCode;
     }
 }

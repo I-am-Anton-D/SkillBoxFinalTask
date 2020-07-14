@@ -16,11 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,8 +42,7 @@ public class ApiGeneralController {
 
     private JSONObject response, request = null;
     private JSONParser parser = new JSONParser();
-    @Autowired
-    private GlobalSettingsRepository globalSettingsRepository;
+    @Autowired private GlobalSettingsRepository globalSettingsRepository;
 
     @GetMapping("/api/init")
     public String init() {
@@ -64,10 +59,8 @@ public class ApiGeneralController {
     @GetMapping("/api/settings")
     public String settings() {
         response = new JSONObject();
-        Iterable<GlobalSettings> settings = globalSettingsRepository.findAll();
-        settings.forEach(globalSettings -> {
-            response.put(globalSettings.getCode(), globalSettings.getValue());
-        });
+        globalSettingsRepository.findAll()
+            .forEach(globalSettings -> response.put(globalSettings.getCode(), globalSettings.getValue()));
         return response.toJSONString();
     }
 

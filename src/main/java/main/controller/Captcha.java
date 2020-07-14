@@ -16,9 +16,6 @@ import javax.imageio.ImageIO;
 import main.model.CaptchaCode;
 import main.model.CaptchaCodesRepository;
 import org.apache.tomcat.util.codec.binary.Base64;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.config.Task;
 
 public class Captcha {
     final static String LETTERS = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -32,7 +29,6 @@ public class Captcha {
     public static String generateCaptchaText() {
         StringBuilder captchaBuffer = new StringBuilder();
         Random random = new Random();
-
         while(captchaBuffer.length() < CAPTCHA_LETTERS_COUNT) {
             int index = (int) (random.nextFloat() * LETTERS.length());
             captchaBuffer.append(LETTERS, index, index+1);
@@ -76,16 +72,15 @@ public class Captcha {
         graphics.drawString(captchaText, 10, 22);
         graphics.setColor(Color.BLACK);
         for (int i = 0; i <3 ; i++) {
-            graphics.drawOval(new Random().nextInt(CAPTCHA_WIDTH/2),new Random().nextInt(CAPTCHA_HEIGHT/2),new Random().nextInt(100),new Random().nextInt(100));
+            graphics.drawOval(new Random().nextInt(CAPTCHA_WIDTH/2),new Random().nextInt(CAPTCHA_HEIGHT/2),
+                new Random().nextInt(100),new Random().nextInt(100));
         }
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             ImageIO.write(bufferedImage, "png", baos);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         return "data:image/png;base64, " + new String(Base64.encodeBase64(baos.toByteArray()), StandardCharsets.UTF_8);
     }
 
