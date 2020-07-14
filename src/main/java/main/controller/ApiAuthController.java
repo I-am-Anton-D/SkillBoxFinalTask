@@ -21,6 +21,7 @@ import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 import main.model.CaptchaCode;
 import main.model.CaptchaCodesRepository;
+import main.model.PostVotesRepository;
 import main.model.PostsRepository;
 import main.model.User;
 import main.model.UsersRepository;
@@ -65,6 +66,7 @@ public class ApiAuthController {
     @Autowired private CaptchaCodesRepository captchaCodesRepository;
     @Autowired private UsersRepository usersRepository;
     @Autowired private PostsRepository postsRepository;
+    @Autowired private PostVotesRepository postVotesRepository;
 
     @PostMapping("/api/profile/my")
     public String editProfile(HttpServletRequest httpServletRequest)

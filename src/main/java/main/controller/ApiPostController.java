@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import javax.persistence.criteria.CriteriaBuilder.In;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import main.model.Post;
@@ -57,6 +58,63 @@ public class ApiPostController {
     @Autowired private Tag2PostRepository tag2PostRepository;
     @Autowired private PostCommentsRepository postCommentsRepository;
     @Autowired private PostVotesRepository postVotesRepository;
+
+    @GetMapping("/api/statistics/all")
+    public String allStatistics(HttpServletRequest httpServletRequest){
+        response = new JSONObject();
+        int postCount = getVisiblePost().size();
+        int viewsCount = getVisiblePost().stream().mapToInt(Post::getViewCount).sum();
+        String firstPublication =  getVisiblePost().stream().sorted(Comparator.comparing(Post::getTime))
+            .map(p->new SimpleDateFormat("yyyy-MM-dd HH:mm").format(p.getTime())).findFirst().get();
+
+        List<Integer> visiblePostIds= getVisiblePost().stream().mapToInt(Post::getId).boxed().collect(
+            Collectors.toList());
+
+        int likesCount = (int)StreamSupport.stream(postVotesRepository.findAll()
+            .spliterator(), false).filter(v->visiblePostIds.contains(v.getPostId()) && v.getValue()==1).count();
+
+        int dislikesCount = (int)StreamSupport.stream(postVotesRepository.findAll()
+            .spliterator(), false).filter(v->visiblePostIds.contains(v.getPostId()) && v.getValue()==-1).count();
+
+        response.put("postsCount", postCount);
+        response.put("likesCount", likesCount);
+        response.put("dislikesCount", dislikesCount);
+        response.put("viewsCount", viewsCount);
+        response.put("firstPublication", firstPublication);
+        return response.toJSONString();
+    }
+
+
+    @GetMapping("/api/statistics/my")
+    public String myStatistics(HttpServletRequest httpServletRequest){
+        if (!checkLogin(httpServletRequest.getSession())) {
+            return null;
+        }
+        response = new JSONObject();
+        int userId = getLoginUserId(httpServletRequest.getSession());
+        int postCount = (int)getVisiblePost().stream().filter(p->p.getUserId()==userId).count();
+        int viewsCount = getVisiblePost().stream().filter(p->p.getUserId()==userId).mapToInt(Post::getViewCount).sum();
+        String firstPublication =  getVisiblePost().stream().filter(p->p.getUserId()==userId)
+            .sorted(Comparator.comparing(Post::getTime))
+            .map(p->new SimpleDateFormat("yyyy-MM-dd HH:mm").format(p.getTime())).findFirst().get();
+
+        List<Integer> myPostIds= getVisiblePost().stream().filter(p->p.getUserId()==userId).mapToInt(Post::getId).boxed().collect(
+            Collectors.toList());
+
+        int likesCount = (int)StreamSupport.stream(postVotesRepository.findAll()
+            .spliterator(), false).filter(v->myPostIds.contains(v.getPostId()) && v.getValue()==1).count();
+
+        int dislikesCount = (int)StreamSupport.stream(postVotesRepository.findAll()
+            .spliterator(), false).filter(v->myPostIds.contains(v.getPostId()) && v.getValue()==-1).count();
+
+        response.put("postsCount", postCount);
+        response.put("likesCount", likesCount);
+        response.put("dislikesCount", dislikesCount);
+        response.put("viewsCount", viewsCount);
+        response.put("firstPublication", firstPublication);
+
+        return response.toJSONString();
+    }
 
 
     @GetMapping("/api/calendar")
