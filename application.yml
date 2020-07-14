@@ -10,3 +10,6 @@ init.email: mail@mail.ru
 init.copyright: Дмитроченко Антон
 init.copyrightFrom: 2019
 auth.captcha.liveTime: 3600000
+server.email: ###
+server.email.password: ###
+server.root: http://localhost:8080

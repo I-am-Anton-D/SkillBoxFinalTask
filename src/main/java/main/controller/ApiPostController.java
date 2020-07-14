@@ -59,7 +59,6 @@ public class ApiPostController {
     @Autowired private PostVotesRepository postVotesRepository;
 
 
-
     @GetMapping("/api/calendar")
     public String calendar(HttpServletRequest httpServletRequest) {
         response = new JSONObject();
