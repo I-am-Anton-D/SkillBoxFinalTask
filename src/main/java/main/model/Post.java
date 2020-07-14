@@ -8,15 +8,18 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 @Entity
-public class Posts {
+@Table(name = "posts")
+public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
     @NotNull
-    private byte isActive;
+    @Column(name = "is_active")
+    private byte active;
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "enum('NEW','ACCEPTED','DECLINED')")
     private ModerationStatus moderationStatus;
@@ -41,12 +44,12 @@ public class Posts {
         this.id = id;
     }
 
-    public byte getIsActive() {
-        return isActive;
+    public byte getActive() {
+        return active;
     }
 
-    public void setIsActive(byte isActive) {
-        this.isActive = isActive;
+    public void setActive(byte active) {
+        this.active = active;
     }
 
     public ModerationStatus getModerationStatus() {

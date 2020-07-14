@@ -157,6 +157,6 @@ public class ApiAuthController {
 
     private int calculateModerationCount() {
         return (int) StreamSupport.stream(postsRepository.findAll().spliterator(),false)
-            .filter(p->p.getIsActive()==1 && p.getModerationStatus()==NEW).count();
+            .filter(p->p.getActive()==1 && p.getModerationStatus()==NEW).count();
     }
 }
