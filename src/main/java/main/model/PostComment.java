@@ -36,22 +36,16 @@ public class PostComment {
         this.text = text;
     }
 
-    public int getId() {
-        return id;
-    }
-
+    public int getId() {return id;}
     public Integer getParentId() {
         return parentId;
     }
-
     public int getPostId() {
         return postId;
     }
-
     public int getUserId() {
         return userId;
     }
-
     public Date getTime() {
         return time;
     }

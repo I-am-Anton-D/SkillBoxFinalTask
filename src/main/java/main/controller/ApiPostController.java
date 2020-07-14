@@ -1,5 +1,9 @@
 package main.controller;
 
+import static main.model.ModerationStatus.ACCEPTED;
+import static main.model.ModerationStatus.DECLINED;
+import static main.model.ModerationStatus.NEW;
+
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -7,10 +11,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.jar.JarEntry;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import javax.persistence.criteria.CriteriaBuilder.In;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import main.model.Post;
@@ -19,9 +21,9 @@ import main.model.PostCommentsRepository;
 import main.model.PostVote;
 import main.model.PostVotesRepository;
 import main.model.PostsRepository;
+import main.model.Tag;
 import main.model.Tag2Post;
 import main.model.Tag2PostRepository;
-import main.model.Tag;
 import main.model.TagsRepository;
 import main.model.User;
 import main.model.UsersRepository;
@@ -36,7 +38,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import static main.model.ModerationStatus.*;
 
 @RestController
 public class ApiPostController {
@@ -84,7 +85,6 @@ public class ApiPostController {
         return response.toJSONString();
     }
 
-
     @GetMapping("/api/statistics/my")
     public String myStatistics(HttpServletRequest httpServletRequest){
         if (!checkLogin(httpServletRequest.getSession())) {
@@ -115,7 +115,6 @@ public class ApiPostController {
 
         return response.toJSONString();
     }
-
 
     @GetMapping("/api/calendar")
     public String calendar(HttpServletRequest httpServletRequest) {
