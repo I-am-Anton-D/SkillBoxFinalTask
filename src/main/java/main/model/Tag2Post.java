@@ -16,27 +16,13 @@ public class Tag2Post {
     @NotNull
     private int tagId;
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public int getPostId() {
-        return postId;
-    }
-
-    public void setPostId(int postId) {
+    public Tag2Post() {}
+    public Tag2Post(@NotNull int postId, @NotNull int tagId) {
         this.postId = postId;
-    }
-
-    public int getTagId() {
-        return tagId;
-    }
-
-    public void setTagId(int tagId) {
         this.tagId = tagId;
     }
+
+    public int getId() {return id;}
+    public int getPostId() {return postId;}
+    public int getTagId() {return tagId;}
 }
