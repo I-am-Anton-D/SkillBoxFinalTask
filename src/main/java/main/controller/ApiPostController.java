@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.jar.JarEntry;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletRequest;
@@ -56,6 +57,32 @@ public class ApiPostController {
     @Autowired private Tag2PostRepository tag2PostRepository;
     @Autowired private PostCommentsRepository postCommentsRepository;
     @Autowired private PostVotesRepository postVotesRepository;
+
+
+
+    @GetMapping("/api/calendar")
+    public String calendar(HttpServletRequest httpServletRequest) {
+        response = new JSONObject();
+        String year = httpServletRequest.getParameter("year");
+
+        JSONArray yearsArray = new JSONArray();
+        yearsArray.addAll(getVisiblePost().stream()
+            .map(p->1900+p.getTime().getYear()).distinct().collect(Collectors.toList()));
+
+        JSONObject postsCounts = new JSONObject();
+        List<String> dates = getVisiblePost().stream()
+            .map(p->new SimpleDateFormat("yyyy-MM-dd").format(p.getTime())).distinct()
+            .collect(Collectors.toList());
+
+        dates.forEach(d -> {
+            postsCounts.put(d, (int) getVisiblePost().stream()
+                .filter(p -> new SimpleDateFormat("yyyy-MM-dd").format(p.getTime()).equals(d)).count());
+        });
+
+        response.put("years", yearsArray);
+        response.put("posts", postsCounts);
+        return response.toJSONString();
+    }
 
     @PostMapping("/api/moderation")
     public void doModeration(@RequestBody String body, HttpServletRequest httpServletRequest)
