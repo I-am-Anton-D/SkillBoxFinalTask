@@ -198,7 +198,6 @@ public class ApiPostController {
 
     @GetMapping("/api/post/my")
     public String myPosts(HttpServletRequest request) {
-
         if (!checkLogin(request.getSession())) return null;
         int offset = Integer.parseInt(request.getParameter("offset"));
         int limit = Integer.parseInt(request.getParameter("limit"));
@@ -207,23 +206,8 @@ public class ApiPostController {
         byte active = -1;
         int ordinal = -1;
 
-        if (status.equals("inactive")) {
-            active = 0;
-            ordinal = 0;
-        }
-        if (status.equals("pending")) {
-            active = 1;
-            ordinal = 0;
-        }
-        if (status.equals("declined")) {
-            active = 1;
-            ordinal = 2;
-        }
-        if (status.equals("published")) {
-            active = 1;
-            ordinal = 1;
-        }
-
+        active = (byte)(status.equals("inactive") ? 0 : 1);
+        ordinal = status.equals("inactive") || status.equals("pending") ? 0 : status.equals("declined") ? 2 : 1;
         int finalOrdinal = ordinal;
         byte finalActive = active;
         List<Post> filterPosts = StreamSupport.stream(postsRepository.findAll().spliterator(), false)

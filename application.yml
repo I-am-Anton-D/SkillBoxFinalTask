@@ -13,3 +13,4 @@ auth.captcha.liveTime: 3600000
 server.email: ###
 server.email.password: ###
 server.root: http://localhost:8080
+server.upload.path: C:\Users\Антон\Desktop\repository\SkillBoxFinalTask\src\main\resources\static\upload\

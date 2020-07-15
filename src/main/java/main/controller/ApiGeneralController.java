@@ -39,6 +39,8 @@ public class ApiGeneralController {
     private String copyright;
     @Value("${init.copyrightFrom}")
     private String copyrightFrom;
+    @Value("${server.upload.path}")
+    private String uploadRootPath;
 
     private JSONObject response, request = null;
     private JSONParser parser = new JSONParser();
@@ -99,7 +101,6 @@ public class ApiGeneralController {
 
     @PostMapping("/api/image")
     public String saveImage( @RequestPart("image") MultipartFile file, HttpServletRequest request) {
-        String uploadRootPath = "C:\\Users\\Антон\\Desktop\\repository\\SkillBoxFinalTask\\src\\main\\resources\\static\\upload\\";
         //TODO Take next string on real server;
         // String uploadRootPath = request.getServletContext().getRealPath("upload");
         String random = "qwertytyuiopokkhffgasvxcbcvhrtey";
