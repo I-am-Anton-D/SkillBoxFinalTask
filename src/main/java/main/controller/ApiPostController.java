@@ -63,12 +63,12 @@ public class ApiPostController {
     @GetMapping("/api/statistics/all")
     public String allStatistics(HttpServletRequest httpServletRequest){
         response = new JSONObject();
-        int postCount = getVisiblePost().size();
-        int viewsCount = getVisiblePost().stream().mapToInt(Post::getViewCount).sum();
-        String firstPublication =  getVisiblePost().stream().sorted(Comparator.comparing(Post::getTime))
+        int postCount = getVisiblePost(0,(int)postsRepository.count()).size();
+        int viewsCount = getVisiblePost(0,(int)postsRepository.count()).stream().mapToInt(Post::getViewCount).sum();
+        String firstPublication =  getVisiblePost(0,(int)postsRepository.count()).stream().sorted(Comparator.comparing(Post::getTime))
             .map(p->new SimpleDateFormat("yyyy-MM-dd HH:mm").format(p.getTime())).findFirst().get();
 
-        List<Integer> visiblePostIds= getVisiblePost().stream().mapToInt(Post::getId).boxed().collect(
+        List<Integer> visiblePostIds= getVisiblePost(0,(int)postsRepository.count()).stream().mapToInt(Post::getId).boxed().collect(
             Collectors.toList());
 
         int likesCount = (int)StreamSupport.stream(postVotesRepository.findAll()
@@ -92,13 +92,13 @@ public class ApiPostController {
         }
         response = new JSONObject();
         int userId = getLoginUserId(httpServletRequest.getSession());
-        int postCount = (int)getVisiblePost().stream().filter(p->p.getUserId()==userId).count();
-        int viewsCount = getVisiblePost().stream().filter(p->p.getUserId()==userId).mapToInt(Post::getViewCount).sum();
-        String firstPublication =  getVisiblePost().stream().filter(p->p.getUserId()==userId)
+        int postCount = (int)getVisiblePost(0,(int)postsRepository.count()).stream().filter(p->p.getUserId()==userId).count();
+        int viewsCount = getVisiblePost(0,(int)postsRepository.count()).stream().filter(p->p.getUserId()==userId).mapToInt(Post::getViewCount).sum();
+        String firstPublication =  getVisiblePost(0,(int)postsRepository.count()).stream().filter(p->p.getUserId()==userId)
             .sorted(Comparator.comparing(Post::getTime))
             .map(p->new SimpleDateFormat("yyyy-MM-dd HH:mm").format(p.getTime())).findFirst().get();
 
-        List<Integer> myPostIds= getVisiblePost().stream().filter(p->p.getUserId()==userId).mapToInt(Post::getId).boxed().collect(
+        List<Integer> myPostIds= getVisiblePost(0,(int)postsRepository.count()).stream().filter(p->p.getUserId()==userId).mapToInt(Post::getId).boxed().collect(
             Collectors.toList());
 
         int likesCount = (int)StreamSupport.stream(postVotesRepository.findAll()
@@ -120,18 +120,19 @@ public class ApiPostController {
     public String calendar(HttpServletRequest httpServletRequest) {
         response = new JSONObject();
         String year = httpServletRequest.getParameter("year");
-
+        //TODO NEED REFACTORING
         JSONArray yearsArray = new JSONArray();
-        yearsArray.addAll(getVisiblePost().stream()
+        yearsArray.addAll(getVisiblePost(0,(int)postsRepository.count()).stream()
             .map(p->1900+p.getTime().getYear()).distinct().collect(Collectors.toList()));
 
         JSONObject postsCounts = new JSONObject();
-        List<String> dates = getVisiblePost().stream()
+        List<String> dates = getVisiblePost(0,(int)postsRepository.count()).stream()
             .map(p->new SimpleDateFormat("yyyy-MM-dd").format(p.getTime())).distinct()
             .collect(Collectors.toList());
 
+        //TODO NEED REFACTORING
         dates.forEach(d -> {
-            postsCounts.put(d, (int) getVisiblePost().stream()
+            postsCounts.put(d, (int) getVisiblePost(0,(int)postsRepository.count()).stream()
                 .filter(p -> new SimpleDateFormat("yyyy-MM-dd").format(p.getTime()).equals(d)).count());
         });
 
@@ -242,10 +243,9 @@ public class ApiPostController {
         int offset = Integer.parseInt(request.getParameter("offset"));
         int limit = Integer.parseInt(request.getParameter("limit"));
         String tag = request.getParameter("tag");
-        List<Integer> postsID = getPostByTag(tag);
-        return transformListPostToJsonObject(getVisiblePost().stream()
-            .filter(p->postsID.contains(p.getId())).skip(offset).limit(limit)
-            .collect(Collectors.toList()),postsID.size()).toJSONString();
+         //TODO NEED REFACTORING
+        return transformListPostToJsonObject(postsRepository.getPostsByTag(tag,offset,limit),
+            postsRepository.getPostsByTagCount(tag)).toJSONString();
     }
 
     @GetMapping("/api/post/byDate")
@@ -258,7 +258,8 @@ public class ApiPostController {
            queryDate = new SimpleDateFormat("yyyy-MM-dd").parse(date);
         }
         Date finalQueryDate = queryDate;
-        List<Post> filterPost = getVisiblePost().stream().filter(
+        //TODO NEED REFACTORING
+        List<Post> filterPost = getVisiblePost(offset,limit).stream().filter(
             p -> new SimpleDateFormat("yyyy-MM-dd").format(p.getTime())
                 .equals(new SimpleDateFormat("yyyy-MM-dd").format(finalQueryDate)))
             .collect(Collectors.toList());
@@ -314,7 +315,7 @@ public class ApiPostController {
             postsRepository.save(post);
         }
         response.put("comments", getComments(id));
-        response.put("tags", getTags(id));
+        response.put("tags", getPostTags(id));
         return response.toJSONString();
     }
 
@@ -324,7 +325,8 @@ public class ApiPostController {
         int offset = Integer.parseInt(request.getParameter("offset"));
         int limit = Integer.parseInt(request.getParameter("limit"));
         String query = request.getParameter("query");
-        List<Post> searchedPosts = getVisiblePost().stream()
+        //TODO NEED REFACTORING
+        List<Post> searchedPosts = getVisiblePost(offset,limit).stream()
             .filter(p -> p.getText().contains(query) || p.getTitle().contains(query))
             .collect(Collectors.toList());
         if (searchedPosts.size() == 0) {
@@ -343,8 +345,8 @@ public class ApiPostController {
         int offset = Integer.parseInt(request.getParameter("offset"));
         int limit = Integer.parseInt(request.getParameter("limit"));
         String mode = request.getParameter("mode");
-        List<Post> sortedList = getVisiblePost();
-
+        List<Post> sortedList = getVisiblePost(offset,limit);
+        //TODO NEED REFACTORING
         if (mode.equals("popular")) {
             sortedList = sortedList.stream()
                 .sorted(Comparator.comparing(post -> getComments(post.getId()).size()))
@@ -360,7 +362,7 @@ public class ApiPostController {
             Collections.reverse(sortedList);
         }
         response = transformListPostToJsonObject(sortedList.stream().skip(offset)
-            .limit(limit).collect(Collectors.toList()), getVisiblePost().size());
+            .limit(limit).collect(Collectors.toList()), postsRepository.countOfVisiblePosts());
         return response.toJSONString();
     }
 
@@ -470,19 +472,18 @@ public class ApiPostController {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm").format(time);
     }
 
-    private List<Post> getVisiblePost() {
-        return StreamSupport.stream(postsRepository.findAll().spliterator(), false)
-            .filter(p -> p.getActive() == 1 && p.getModerationStatus() == ACCEPTED
-                && p.getTime().getTime() <= System.currentTimeMillis())
-            .sorted(Comparator.comparing(Post::getTime).reversed())
-            .collect(Collectors.toList());
+    private List<Post> getVisiblePost(int offset, int limit) {
+        return postsRepository.getVisiblePosts(offset, limit);
+    }
+
+    private List<Post> getAllVisiblePost() {
+        return postsRepository.getAllVisiblePosts();
     }
 
     private double calculateTagWeight(int tagId) {
-        List<Integer> visibleIds = getVisiblePost().stream().map(Post::getId).collect(Collectors.toList());
-        double totalCount = visibleIds.size();
-        long frequencyTag = StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false).
-            filter(tag -> visibleIds.contains(tag.getPostId()) && tag.getTagId() == tagId).count();
+
+        double totalCount = postsRepository.countOfVisiblePosts();
+        long frequencyTag = tag2PostRepository.getFrequencyOfTag(tagId);
         return Double.parseDouble(new DecimalFormat("#.##").format(frequencyTag / totalCount).replace(",", "."));
     }
 
@@ -546,10 +547,9 @@ public class ApiPostController {
         return arrayOfComments;
     }
 
-    private JSONArray getTags(int id) {
+    private JSONArray getPostTags(int id) {
         JSONArray arrayOfTags = new JSONArray();
-        StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false).filter(t->t.getPostId()==id)
-            .forEach(t->arrayOfTags.add(tagsRepository.findById(t.getTagId()).get().getName()));
+        arrayOfTags.addAll(tagsRepository.getPostTags(id));
         return arrayOfTags;
     }
 
@@ -561,15 +561,8 @@ public class ApiPostController {
         return jsonUser;
     }
 
-    private List<Integer> getPostByTag(String tagName) {
-        return StreamSupport.stream(tag2PostRepository.findAll().spliterator(), false)
-            .filter(t -> t.getTagId() == getTagIdByName(tagName)).map(Tag2Post::getPostId)
-            .collect(Collectors.toList());
-    }
-
     private int getTagIdByName(String tagName) {
-        return StreamSupport.stream(tagsRepository.findAll().spliterator(), false)
-            .filter(t -> t.getName().equals(tagName)).findFirst().get().getId();
+        return tagsRepository.getTagIdByName(tagName);
     }
 
     private User getUserById(int id) {

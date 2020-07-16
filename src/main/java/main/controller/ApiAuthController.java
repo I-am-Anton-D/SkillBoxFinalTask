@@ -73,7 +73,6 @@ public class ApiAuthController {
     @PostMapping("/api/profile/my")
     public String editProfile(HttpServletRequest httpServletRequest)
         throws ParseException, IOException, ServletException {
-        //TODO Maybe need some refactoring and simplify
         //TODO Remove on real server
         //String uploadRootPath = request.getServletContext().getRealPath("upload");
         boolean multipart = false;
