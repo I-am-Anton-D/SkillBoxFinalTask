@@ -59,6 +59,8 @@ public class ApiAuthController {
     private String serverRoot;
     @Value("${auth.captcha.liveTime}")
     private String captchaLiveTime;
+    @Value("${server.upload.path}")
+    private String uploadRootPath;
     private JSONObject response, request = null;
     private final JSONParser parser = new JSONParser();
     public static Map<String, Integer> sessions = new HashMap<>();
@@ -71,14 +73,13 @@ public class ApiAuthController {
     @PostMapping("/api/profile/my")
     public String editProfile(HttpServletRequest httpServletRequest)
         throws ParseException, IOException, ServletException {
-        //TODO Maybe need some refactoring and simplify
         //TODO Remove on real server
         //String uploadRootPath = request.getServletContext().getRealPath("upload");
-        String uploadRootPath = "C:\\Users\\Антон\\Desktop\\repository\\SkillBoxFinalTask\\src\\main\\resources\\static\\upload\\";
         boolean multipart = false;
-        String mail = null, name = null, password = null, requestBody = null;
+        String mail = "", name = "", password = null, requestBody = null;
         Integer removePhoto = null;
         long size = -1;
+        Part partPhoto = null;
 
         if (!checkLogin(httpServletRequest.getSession())) {
             return null;
@@ -107,28 +108,8 @@ public class ApiAuthController {
                 }
                 if (p.getName().equals("photo")) {
                     size = p.getSize();
-                    if (size!= 0 && size<5242880) {
-                        String random = "qwertytyuiopokkhffgasvxcbcvhrtey";
-                        StringBuilder randomPart = new StringBuilder();
-                        for (int i = 0; i <5 ; i++) {
-                            int r = new Random().nextInt(random.length()-1);
-                            randomPart.append(random.charAt(r));
-                        }
-                        try {
-                            byte[] bytes = p.getInputStream().readAllBytes();
-                            BufferedOutputStream stream =
-                                new BufferedOutputStream(
-                                    new FileOutputStream(new File(uploadRootPath + randomPart + p.getSubmittedFileName())));
-                            stream.write(bytes);
-                            stream.close();
-                            Thumbnails.of(uploadRootPath + randomPart + p.getSubmittedFileName())
-                                .size(AVATAR_SIZE, AVATAR_SIZE)
-                                .toFile(uploadRootPath + randomPart + p.getSubmittedFileName());
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        user.setPhoto("/upload/"+randomPart+p.getSubmittedFileName());
+                    if (size != 0 && size < 5242880) {
+                        partPhoto = p;
                     }
                 }
             }
@@ -140,9 +121,6 @@ public class ApiAuthController {
             password = request.get("password")!=null ? (String) request.get("password") : null;
             removePhoto = request.get("removePhoto")!=null ? (int)((long) request.get("removePhoto")) : null;
         }
-
-        if (name == null ) name ="";
-        if (mail == null) mail = "";
 
         JSONObject errors = new JSONObject();
         if (!mail.equals(user.getEmail())) {
@@ -160,22 +138,25 @@ public class ApiAuthController {
                 user.setName(name);
             }
         }
-
         if (size==0 || size>5242880) {
             errors.put("photo", WRONG_PHOTO_SIZE);
         }
+
         if (password!=null) {
             if (password.length() < 6) {
-                errors.put("name", WRONG_PASSWORD);
+                errors.put("password", WRONG_PASSWORD);
             } else {
                 user.setPassword(Captcha.getMD5(password));
             }
         }
-        if (removePhoto!= null && removePhoto.equals(1)) {
-            user.setPhoto(null);
-        }
 
         if (errors.size()==0) {
+            if (removePhoto!= null && removePhoto.equals(1)) {
+                user.setPhoto(null);
+            }
+            if (partPhoto!=null) {
+                user.setPhoto(saveAvatar(partPhoto));
+            }
             usersRepository.save(user);
             response.put("result", true);
         } else {
@@ -206,7 +187,7 @@ public class ApiAuthController {
         String mail = (String) request.get("email");
         if (!checkFreeMail(mail)) {
             String code = Captcha.getMD5(Captcha.generateCaptchaText());
-            User user = getUserByEmail(mail);
+            User user = usersRepository.getUserByEmail(mail);
             user.setCode(code);
             usersRepository.save(user);
             sentMail(code,mail);
@@ -299,25 +280,36 @@ public class ApiAuthController {
         return response.toJSONString();
     }
 
-    private User getUserByEmail(String mail) {
-        return StreamSupport.stream(usersRepository.findAll().spliterator(),false)
-            .filter(u->u.getEmail().equals(mail)).findFirst().get();
+    private String saveAvatar(Part p){
+        String random = "qwertytyuiopokkhffgasvxcbcvhrtey";
+        StringBuilder randomPart = new StringBuilder();
+        for (int i = 0; i <5 ; i++) {
+            int r = new Random().nextInt(random.length()-1);
+            randomPart.append(random.charAt(r));
+        }
+        try {
+            byte[] bytes = p.getInputStream().readAllBytes();
+            BufferedOutputStream stream =
+                new BufferedOutputStream(
+                    new FileOutputStream(new File(uploadRootPath + randomPart + p.getSubmittedFileName())));
+            stream.write(bytes);
+            stream.close();
+            Thumbnails.of(uploadRootPath + randomPart + p.getSubmittedFileName())
+                .size(AVATAR_SIZE, AVATAR_SIZE)
+                .toFile(uploadRootPath + randomPart + p.getSubmittedFileName());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "/upload/"+randomPart+p.getSubmittedFileName();
     }
 
     public boolean checkFreeMail(String mail) {
-        for (User user:usersRepository.findAll()) {
-            if (user.getEmail().equals(mail)) return false;
-        }
-        return true;
+         return usersRepository.checkFreeMail(mail)==0;
     }
 
     public User checkLoginPassword(String mail, String password) {
-        for (User user: usersRepository.findAll()) {
-           if (user.getEmail().equals(mail) && user.getPassword().equals(Captcha.getMD5(password))) {
-               return user;
-           }
-        }
-        return null;
+        return usersRepository.checkMailAndPassword(mail, Captcha.getMD5(password));
     }
 
     public JSONObject transformUserToJson(User user) {
@@ -329,7 +321,7 @@ public class ApiAuthController {
         if (user.isModerator()) {
             jsonUser.put("moderation", true);
             jsonUser.put("settings", true);
-            jsonUser.put("moderationCount", calculateModerationCount());
+            jsonUser.put("moderationCount", postsRepository.getCountOfPostsForModeration());
         } else {
             jsonUser.put("moderation", false);
             jsonUser.put("settings", false);
@@ -337,17 +329,11 @@ public class ApiAuthController {
         return jsonUser;
     }
 
-    private int calculateModerationCount() {
-        return (int) StreamSupport.stream(postsRepository.findAll().spliterator(),false)
-            .filter(p->p.getActive()==1 && p.getModerationStatus()==NEW).count();
-    }
-
     private void sentMail(String code, String mail) throws AddressException {
         mail = "antmhy@gmail.com"; //TODO Remove on real server with real users
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
-
         mailSender.setUsername(serverEmail);
         mailSender.setPassword(serverEmailPassword);
 
@@ -363,12 +349,10 @@ public class ApiAuthController {
         message.setTo(mail);
         message.setSubject("Password restore");
         message.setText("Hello, go to "+ serverRoot +"/login/change-password/"+code);
-
         mailSender.send(message);
     }
 
     private boolean checkLogin(HttpSession session) {
         return sessions.containsKey(session.getId());
     }
-
 }

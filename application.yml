@@ -2,6 +2,13 @@ spring.datasource.url: jdbc:mysql://localhost:3306/final
 spring.datasource.username: root
 spring.datasource.password: 12345678
 spring.jpa.hibernate.ddl-auto: validate
+spring.jpa.show-sql: true
+#server.error.whitelabel.enabled: false
+spring.mvc.throw-exception-if-no-handler-found: true
+#spring.resources.add-mappings: false
+pring.mvc.static-path-pattern: /js/**
+spring.resources.static-locations: file:C:/Users/Антон/Desktop/repository/SkillBoxFinalTask/src/main/resources/static/
+##spring.resources.static-locations: file:../resources/static/
 #spring.thymeleaf.cache: false
 init.title: DevPub
 init.subtitle: Рассказы разработчиков
@@ -13,3 +20,4 @@ auth.captcha.liveTime: 3600000
 server.email: ###
 server.email.password: ###
 server.root: http://localhost:8080
+server.upload.path: C:/Users/Антон/Desktop/repository/SkillBoxFinalTask/src/main/resources/static/upload/
