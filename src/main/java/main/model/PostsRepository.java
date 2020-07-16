@@ -96,4 +96,42 @@ public interface PostsRepository extends CrudRepository<Post, Integer> {
         + "AND time<=NOW() GROUP BY date(time) ORDER BY time", nativeQuery = true)
     List<Integer> getCountOfPostByDate();
 
+    @Query(value = "SELECT count(*) FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = "
+        + "'ACCEPTED' AND time<=NOW() AND posts.user_id = :userId", nativeQuery = true)
+    int getCountOfUserPosts(@Param("userId") int userId);
+
+    @Query(value = "SELECT sum(view_count) FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = "
+        + "'ACCEPTED' AND time<=NOW() AND posts.user_id = :userId", nativeQuery = true)
+    int getSumViewCountOfUserPosts(@Param("userId") int userId);
+
+    @Query(value = "SELECT time FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = "
+        + "'ACCEPTED' AND time<=NOW() AND posts.user_id = :userId order by time limit 1", nativeQuery = true)
+    Date getFirstPublicationDateOfUserPosts(@Param("userId") int userId);
+
+    @Query(value = "SELECT count(*) FROM posts JOIN post_votes "
+        + "ON post_votes.post_id = posts.id and post_votes.value = :value WHERE posts.is_active = 1 "
+        + "AND posts.moderation_status = 'ACCEPTED' AND posts.time<=NOW() AND posts.user_id = :userId", nativeQuery = true)
+    int getVotesCountOfUser(@Param("userId") int userId, @Param("value") int value);
+
+    @Query(value = "SELECT count(*) FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = "
+        + "'ACCEPTED' AND time<=NOW()", nativeQuery = true)
+    int getCountOfAllPosts();
+
+    @Query(value = "SELECT sum(view_count) FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = "
+        + "'ACCEPTED' AND time<=NOW()", nativeQuery = true)
+    int getSumViewCountOfAllPosts();
+
+    @Query(value = "SELECT time FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = "
+        + "'ACCEPTED' AND time<=NOW() order by time limit 1", nativeQuery = true)
+    Date getFirstPublicationDateOfAllPosts();
+
+    @Query(value = "SELECT count(*) FROM posts JOIN post_votes "
+        + "ON post_votes.post_id = posts.id and post_votes.value = :value WHERE posts.is_active = 1 "
+        + "AND posts.moderation_status = 'ACCEPTED' AND posts.time<=NOW()", nativeQuery = true)
+    int getVotesCountOfAllUser(@Param("value") int value);
+
+    @Query(value = "SELECT count(*) FROM posts WHERE  posts.is_active = 1 "
+        + "AND posts.moderation_status = 'NEW' AND time<=NOW()", nativeQuery = true)
+    int getCountOfPostsForModeration();
+
 }

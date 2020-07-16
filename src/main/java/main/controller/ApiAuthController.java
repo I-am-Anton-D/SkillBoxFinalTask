@@ -187,7 +187,7 @@ public class ApiAuthController {
         String mail = (String) request.get("email");
         if (!checkFreeMail(mail)) {
             String code = Captcha.getMD5(Captcha.generateCaptchaText());
-            User user = getUserByEmail(mail);
+            User user = usersRepository.getUserByEmail(mail);
             user.setCode(code);
             usersRepository.save(user);
             sentMail(code,mail);
@@ -304,25 +304,12 @@ public class ApiAuthController {
         return "/upload/"+randomPart+p.getSubmittedFileName();
     }
 
-    private User getUserByEmail(String mail) {
-        return StreamSupport.stream(usersRepository.findAll().spliterator(),false)
-            .filter(u->u.getEmail().equals(mail)).findFirst().get();
-    }
-
     public boolean checkFreeMail(String mail) {
-        for (User user:usersRepository.findAll()) {
-            if (user.getEmail().equals(mail)) return false;
-        }
-        return true;
+         return usersRepository.checkFreeMail(mail)==0;
     }
 
     public User checkLoginPassword(String mail, String password) {
-        for (User user: usersRepository.findAll()) {
-           if (user.getEmail().equals(mail) && user.getPassword().equals(Captcha.getMD5(password))) {
-               return user;
-           }
-        }
-        return null;
+        return usersRepository.checkMailAndPassword(mail, Captcha.getMD5(password));
     }
 
     public JSONObject transformUserToJson(User user) {
@@ -334,7 +321,7 @@ public class ApiAuthController {
         if (user.isModerator()) {
             jsonUser.put("moderation", true);
             jsonUser.put("settings", true);
-            jsonUser.put("moderationCount", calculateModerationCount());
+            jsonUser.put("moderationCount", postsRepository.getCountOfPostsForModeration());
         } else {
             jsonUser.put("moderation", false);
             jsonUser.put("settings", false);
@@ -342,17 +329,11 @@ public class ApiAuthController {
         return jsonUser;
     }
 
-    private int calculateModerationCount() {
-        return (int) StreamSupport.stream(postsRepository.findAll().spliterator(),false)
-            .filter(p->p.getActive()==1 && p.getModerationStatus()==NEW).count();
-    }
-
     private void sentMail(String code, String mail) throws AddressException {
         mail = "antmhy@gmail.com"; //TODO Remove on real server with real users
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
-
         mailSender.setUsername(serverEmail);
         mailSender.setPassword(serverEmailPassword);
 
@@ -368,12 +349,10 @@ public class ApiAuthController {
         message.setTo(mail);
         message.setSubject("Password restore");
         message.setText("Hello, go to "+ serverRoot +"/login/change-password/"+code);
-
         mailSender.send(message);
     }
 
     private boolean checkLogin(HttpSession session) {
         return sessions.containsKey(session.getId());
     }
-
 }
