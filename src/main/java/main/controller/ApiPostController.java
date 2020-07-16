@@ -397,14 +397,6 @@ public class ApiPostController {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm").format(time);
     }
 
-    private List<Post> getVisiblePost(int offset, int limit) {
-        return postsRepository.getVisiblePosts(offset, limit);
-    }
-
-    private List<Post> getAllVisiblePost() {
-        return postsRepository.getAllVisiblePosts();
-    }
-
     private double calculateTagWeight(int tagId) {
         double totalCount = postsRepository.countOfVisiblePosts();
         long frequencyTag = tag2PostRepository.getFrequencyOfTag(tagId);
