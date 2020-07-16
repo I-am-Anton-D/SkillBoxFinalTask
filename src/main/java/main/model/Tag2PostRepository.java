@@ -11,4 +11,7 @@ public interface Tag2PostRepository extends CrudRepository<Tag2Post, Integer> {
         + "AND time<=NOW()) ps ON t.post_id = ps.postID WHERE t.tag_id=:tagId", nativeQuery = true)
     int getFrequencyOfTag(@Param("tagId") int tagId);
 
+    @Query(value = "DELETE * FROM tag2post WHERE post_id = :postId", nativeQuery = true)
+    void deleteTagsOnPost(@Param("postId") int postId);
+
 }
