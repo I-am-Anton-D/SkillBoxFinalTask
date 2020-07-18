@@ -1,13 +1,14 @@
-package main.model;
+package main.repositories;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import javax.persistence.criteria.CriteriaBuilder.In;
+import main.model.Post;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface PostsRepository extends CrudRepository<Post, Integer> {
 
     @Query(value = "SELECT * FROM posts WHERE posts.is_active = 1 AND posts.moderation_status = 'ACCEPTED' "

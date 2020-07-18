@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.Random;
 import javax.imageio.ImageIO;
 import main.model.CaptchaCode;
-import main.model.CaptchaCodesRepository;
+import main.repositories.CaptchaCodesRepository;
 import org.apache.tomcat.util.codec.binary.Base64;
 
 public class Captcha {
@@ -60,7 +60,6 @@ public class Captcha {
             }
         });
     }
-
 
     public static String generateCaptchaImage(String captchaText){
         BufferedImage bufferedImage = new BufferedImage(CAPTCHA_WIDTH, CAPTCHA_HEIGHT, BufferedImage.OPAQUE);
