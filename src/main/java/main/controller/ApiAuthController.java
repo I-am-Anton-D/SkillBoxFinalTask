@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.servlet.ServletException;
@@ -20,11 +19,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.Part;
 import main.model.CaptchaCode;
-import main.model.CaptchaCodesRepository;
-import main.model.PostVotesRepository;
-import main.model.PostsRepository;
+import main.repositories.CaptchaCodesRepository;
+import main.repositories.PostVotesRepository;
+import main.repositories.PostsRepository;
 import main.model.User;
-import main.model.UsersRepository;
+import main.repositories.UsersRepository;
 import net.coobird.thumbnailator.Thumbnails;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -38,9 +37,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-
-import static main.model.ModerationStatus.*;
 
 @RestController
 public class ApiAuthController {

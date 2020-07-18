@@ -3,31 +3,22 @@ package main.controller;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.List;
 import java.util.Random;
 import javax.servlet.http.HttpServletRequest;
 import main.model.GlobalSettings;
-import main.model.GlobalSettingsRepository;
-import main.model.Post;
-import main.model.PostsRepository;
+import main.repositories.GlobalSettingsRepository;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.util.ClassUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.NoHandlerFoundException;
 
 @RestController
 public class ApiGeneralController {
@@ -49,7 +40,6 @@ public class ApiGeneralController {
     private String copyrightFrom;
     @Value("${server.upload.path}")
     private String uploadRootPath;
-
     private JSONObject response, request = null;
     private JSONParser parser = new JSONParser();
     @Autowired private GlobalSettingsRepository globalSettingsRepository;
@@ -63,7 +53,7 @@ public class ApiGeneralController {
         response.put("email", mail);
         response.put("copyright", copyright);
         response.put("copyrightFrom", copyrightFrom);
-        return response.toJSONString();
+       return response.toJSONString();
     }
 
     @GetMapping("/api/settings")

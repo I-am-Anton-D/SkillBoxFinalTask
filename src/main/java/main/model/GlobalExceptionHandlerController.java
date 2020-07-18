@@ -1,4 +1,4 @@
-package main.controller;
+package main.model;
 
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
