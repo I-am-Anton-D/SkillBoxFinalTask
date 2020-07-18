@@ -349,11 +349,11 @@ public class PostService {
     }
 
     private boolean checkLogin(HttpSession session) {
-        return ApiAuthController.sessions.containsKey(session.getId());
+        return AuthService.sessions.containsKey(session.getId());
     }
 
     private int getLoginUserId(HttpSession session) {
-        return ApiAuthController.sessions.get(session.getId());
+        return AuthService.sessions.get(session.getId());
     }
 
     private String formatTime(Date time) {
