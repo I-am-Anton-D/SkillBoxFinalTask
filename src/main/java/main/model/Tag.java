@@ -7,24 +7,61 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+/**
+ * Entity for tags
+ */
+
 @Entity
-@Table(name="tags")
+@Table(name = "tags")
 public class Tag {
+
+    /**
+     * unique id in DB
+     */
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private int id;
+
+    /**
+     * name of tage
+     */
+
     @NotNull
     private String name;
 
-    public Tag() {}
+    /**
+     * empty constructor for Spring
+     */
+
+    public Tag() {
+    }
+
+    /**
+     * constructor for creating entity
+     */
+
     public Tag(int id, @NotNull String name) {
         this.id = id;
         this.name = name;
     }
 
+    /**
+     * Standard getter
+     *
+     * @return id of tag
+     */
+
     public int getId() {
         return id;
     }
+
+    /**
+     * Standard getter
+     *
+     * @return name of tag
+     */
+
     public String getName() {
         return name;
     }
