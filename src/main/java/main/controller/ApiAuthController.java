@@ -40,11 +40,29 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Rest Controller for authorization and working with profile of user
+ */
+
 @RestController
 public class ApiAuthController {
 
+    /**
+     * Service for authorization
+     */
+
     @Autowired
     AuthService authService;
+
+    /**
+     * Edit profile of user
+     *
+     * @param httpServletRequest - using for detecting user
+     * @return JSON response to front end, @see AuthService.editProfile()
+     * @throws ParseException   - if can not parse Response Body to Json
+     * @throws IOException      - if can not write the image (avatar)
+     * @throws ServletException - using for multipart request detection
+     */
 
     @PostMapping("/api/profile/my")
     public String editProfile(HttpServletRequest httpServletRequest)
@@ -52,43 +70,103 @@ public class ApiAuthController {
         return authService.editProfile(httpServletRequest);
     }
 
+    /**
+     * Using for change password
+     *
+     * @param hash - secret hash for restoring password
+     * @return JSON response, @see AuthService.changePassword()
+     */
+
     @GetMapping("/login/change-password/{hash}")
     public String changePassword(@PathVariable String hash) {
         return authService.changePassword(hash);
     }
+
+    /**
+     * Validating restoring password
+     *
+     * @param body - request body in Json
+     * @return JSON response @see AuthService.validateRestoringPassword()
+     */
 
     @PostMapping("/api/auth/password")
     public String validateRestoringPassword(@RequestBody String body) {
         return authService.validateRestoringPassword(body);
     }
 
+    /**
+     * Restoring password of user
+     *
+     * @param body request body in JSON
+     * @return JSON response @see AuthService.restorePassword()
+     * @throws ParseException   if can not parse Response Body tp Json
+     * @throws AddressException if can not sent e-mail
+     */
+
     @PostMapping("/api/auth/restore")
     public String restorePassword(@RequestBody String body) throws ParseException, AddressException {
         return authService.restorePassword(body);
     }
 
+    /**
+     * Login the user
+     *
+     * @param body        request body in JSON
+     * @param httpRequest using for detecting user
+     * @return JSON response @see AuthService.login()
+     * @throws ParseException if can not parse Response Body tp Json
+     */
+
     @PostMapping("/api/auth/login")
     public String login(@RequestBody String body, HttpServletRequest httpRequest) throws ParseException {
-        return authService.login(body,httpRequest);
+        return authService.login(body, httpRequest);
     }
+
+    /**
+     * Checking authorization of user
+     *
+     * @param httpRequest using for detecting user
+     * @return JSON response @see AuthService.check()
+     */
 
     @GetMapping("/api/auth/check")
     public String check(HttpServletRequest httpRequest) {
         return authService.check(httpRequest);
     }
 
+    /**
+     * Logout of user
+     *
+     * @param httpRequest using for detecting user
+     * @return JSON response @see AuthService.logout()
+     */
+
     @GetMapping("/api/auth/logout")
-    public String logout(HttpServletRequest httpRequest){
+    public String logout(HttpServletRequest httpRequest) {
         return authService.logout(httpRequest);
     }
+
+    /**
+     * Registration of user
+     *
+     * @param body using for detecting user
+     * @return JSON response @see AuthService.register()
+     * @throws ParseException if can not parse Response Body tp Json
+     */
 
     @PostMapping("/api/auth/register")
     public String register(@RequestBody String body) throws ParseException {
         return authService.register(body);
     }
 
+    /**
+     * Generation of captcha
+     *
+     * @return JSON response @see AuthService.captcha()
+     */
+
     @GetMapping("/api/auth/captcha")
-    public String captcha() throws IOException {
+    public String captcha() {
         return authService.captcha();
     }
 }

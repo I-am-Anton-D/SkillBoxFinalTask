@@ -2,4 +2,11 @@ package main.repositories;
 
 import main.model.GlobalSettings;
 import org.springframework.data.repository.CrudRepository;
-public interface GlobalSettingsRepository  extends CrudRepository<GlobalSettings, Integer> {}
+
+/**
+ * Repository for working with global settings
+ */
+
+public interface GlobalSettingsRepository extends CrudRepository<GlobalSettings, Integer> {
+
+}

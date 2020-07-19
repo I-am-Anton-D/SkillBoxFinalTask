@@ -21,27 +21,63 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Rest Controller for general settings and init
+ */
+
 @RestController
 public class ApiGeneralController {
-    @Autowired private GeneralService generalService;
+
+    /**
+     * Service for for general settings and init
+     */
+
+    @Autowired
+    private GeneralService generalService;
+
+    /**
+     * Initialization of application (inserting title, subtilte and etc)
+     *
+     * @return response in JSON, @see GeneralService.init();
+     */
 
     @GetMapping("/api/init")
     public String init() {
         return generalService.init();
     }
 
+    /**
+     * Getting general settings
+     *
+     * @return response in JSON, @see GeneralService.settings()
+     */
     @GetMapping("/api/settings")
     public String settings() {
         return generalService.settings();
     }
+
+    /**
+     * Saving new settings
+     *
+     * @param body request in JSON
+     * @throws ParseException - if can not parse Response Body to Json
+     */
 
     @PutMapping("/api/settings")
     public void postSettings(@RequestBody String body) throws ParseException {
         generalService.postSettings(body);
     }
 
+    /**
+     * Saving file (image) from frontend
+     *
+     * @param file    file from frontend
+     * @param request using for detecting user
+     * @return source to downloading file
+     */
+
     @PostMapping("/api/image")
-    public String saveImage( @RequestPart("image") MultipartFile file, HttpServletRequest request) {
-        return generalService.saveImage(file,request);
+    public String saveImage(@RequestPart("image") MultipartFile file, HttpServletRequest request) {
+        return generalService.saveImage(file, request);
     }
 }

@@ -1,3 +1,7 @@
 package main.model;
 
-public enum ModerationStatus {NEW, ACCEPTED,DECLINED}
+/**
+ * Enum for moderation status of the post
+ */
+
+public enum ModerationStatus {NEW, ACCEPTED, DECLINED}
