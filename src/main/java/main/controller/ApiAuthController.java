@@ -71,18 +71,6 @@ public class ApiAuthController {
     }
 
     /**
-     * Using for change password
-     *
-     * @param hash - secret hash for restoring password
-     * @return JSON response, @see AuthService.changePassword()
-     */
-
-    @GetMapping("/login/change-password/{hash}")
-    public String changePassword(@PathVariable String hash) {
-        return authService.changePassword(hash);
-    }
-
-    /**
      * Validating restoring password
      *
      * @param body - request body in Json

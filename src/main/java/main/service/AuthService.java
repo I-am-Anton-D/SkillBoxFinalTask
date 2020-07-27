@@ -408,7 +408,7 @@ public class AuthService {
     }
 
     /**
-     * Savin avatar of user
+     * Saving avatar of user
      *
      * @param p part of multipart
      * @return path to saved file
