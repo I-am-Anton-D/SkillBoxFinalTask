@@ -3,13 +3,9 @@ spring.datasource.username: root
 spring.datasource.password: 12345678
 spring.jpa.hibernate.ddl-auto: validate
 spring.jpa.show-sql: true
-#server.error.whitelabel.enabled: false
+server.error.whitelabel.enabled: false
 spring.mvc.throw-exception-if-no-handler-found: true
 #spring.resources.add-mappings: false
-pring.mvc.static-path-pattern: /js/**
-spring.resources.static-locations: file:C:/Users/Антон/Desktop/repository/SkillBoxFinalTask/src/main/resources/static/
-##spring.resources.static-locations: file:../resources/static/
-#spring.thymeleaf.cache: false
 init.title: DevPub
 init.subtitle: Рассказы разработчиков
 init.phone: +7 903 666-44-55,

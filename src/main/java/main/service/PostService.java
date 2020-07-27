@@ -13,8 +13,10 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import main.model.GlobalSettings;
 import main.model.Post;
 import main.model.PostComment;
+import main.repositories.GlobalSettingsRepository;
 import main.repositories.PostCommentsRepository;
 import main.model.PostVote;
 import main.repositories.PostVotesRepository;
@@ -119,6 +121,13 @@ public class PostService {
 
     @Autowired
     private PostVotesRepository postVotesRepository;
+
+    /**
+     * Repository for global settings
+     */
+
+    @Autowired
+    private GlobalSettingsRepository globalSettingsRepository;
 
     /**
      * Getting all statistics of blog
@@ -517,7 +526,15 @@ public class PostService {
         } else {
             Post post = new Post();
             post.setActive((byte) ((long) request.get("active")));
-            post.setModerationStatus(NEW);
+            globalSettingsRepository.findAll().forEach(globalSettings -> {
+                if (globalSettings.getCode().equals("POST_PREMODERATION")) {
+                    if (globalSettings.getValue()) {
+                        post.setModerationStatus(NEW);
+                    } else {
+                        post.setModerationStatus(ACCEPTED);
+                    }
+                }
+            });
             post.setUserId(getLoginUserId(httpServletRequest.getSession()));
             post.setTime(new Date(createTime));
             post.setTitle(title);

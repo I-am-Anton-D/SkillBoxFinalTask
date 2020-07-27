@@ -23,4 +23,30 @@ public class DefaultController {
         return "index";
     }
 
+    /**
+     * use frontend
+     *
+     * @return redirecting
+     */
+
+    @RequestMapping(value = {
+        "/edit/*",
+        "/calendar/*",
+        "/my/*",
+        "/login",
+        "/login/**",
+        "/moderator/*",
+        "/moderation/*",
+        "/post/*",
+        "/posts/*",
+        "/profile",
+        "settings",
+        "/stat",
+        "/404"
+    })
+
+    public String frontend() {
+        return "forward:/";
+    }
+
 }

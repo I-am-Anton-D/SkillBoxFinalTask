@@ -124,7 +124,9 @@ public class GeneralService {
         response = new JSONObject();
 
         globalSettingsRepository.findAll()
-            .forEach(globalSettings -> response.put(globalSettings.getCode(), globalSettings.getValue()));
+            .forEach(globalSettings -> {
+                response.put(globalSettings.getCode(), globalSettings.getValue());
+            });
 
         return response.toJSONString();
     }
@@ -139,35 +141,32 @@ public class GeneralService {
     public void postSettings(String body) throws ParseException {
         request = (JSONObject) parser.parse(body);
 
-        Iterable<GlobalSettings> settings = globalSettingsRepository.findAll();
-        for (Object key : request.keySet()) {
-            String code = (String) key;
+        globalSettingsRepository.deleteAll();
 
+        if (request.get("MULTIUSER_MODE")!=null) {
             GlobalSettings globalSettings = new GlobalSettings();
-            globalSettings.setCode(code);
+            boolean mu = (boolean) request.get("MULTIUSER_MODE");
+            globalSettings.setName(MULTIUSER_MODE);
+            globalSettings.setCode("MULTIUSER_MODE");
+            globalSettings.setValue(mu);
+            globalSettingsRepository.save(globalSettings);
+        }
 
-            switch (code) {
-                case "MULTIUSER_MODE": {
-                    globalSettings.setName(MULTIUSER_MODE);
-                    break;
-                }
-                case "POST_PREMODERATION": {
-                    globalSettings.setName(POST_PREMODERATION);
-                    break;
-                }
-                case "STATISTICS_IS_PUBLIC": {
-                    globalSettings.setName(STATISTICS_IS_PUBLIC);
-                    break;
-                }
-            }
+        if (request.get("STATISTICS_IS_PUBLIC")!=null) {
+            GlobalSettings globalSettings = new GlobalSettings();
+            boolean sp = (boolean) request.get("STATISTICS_IS_PUBLIC");
+            globalSettings.setName(STATISTICS_IS_PUBLIC);
+            globalSettings.setCode("STATISTICS_IS_PUBLIC");
+            globalSettings.setValue(sp);
+            globalSettingsRepository.save(globalSettings);
+        }
 
-            globalSettings.setValue((boolean) request.get(code));
-            for (GlobalSettings gs : settings) {
-                if (gs.getCode().equals(code)) {
-                    globalSettingsRepository.delete(gs);
-                    break;
-                }
-            }
+        if (request.get("POST_PREMODERATION")!=null) {
+            GlobalSettings globalSettings = new GlobalSettings();
+            boolean pp = (boolean) request.get("POST_PREMODERATION");
+            globalSettings.setName(POST_PREMODERATION);
+            globalSettings.setCode("POST_PREMODERATION");
+            globalSettings.setValue(pp);
             globalSettingsRepository.save(globalSettings);
         }
     }
