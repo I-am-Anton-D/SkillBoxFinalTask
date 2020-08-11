@@ -40,7 +40,7 @@ public class Post {
 
     @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "enum('NEW','ACCEPTED','DECLINED')")
-    private ModerationStatus moderationStatus;
+    private ModerationStatus moderationStatus = ModerationStatus.NEW;
 
     /**
      * id of moderator

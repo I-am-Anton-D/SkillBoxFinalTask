@@ -78,7 +78,7 @@ public class ApiAuthController {
      */
 
     @PostMapping("/api/auth/password")
-    public String validateRestoringPassword(@RequestBody String body) {
+    public String validateRestoringPassword(@RequestBody String body) throws ParseException {
         return authService.validateRestoringPassword(body);
     }
 
@@ -87,13 +87,13 @@ public class ApiAuthController {
      *
      * @param body request body in JSON
      * @return JSON response @see AuthService.restorePassword()
-     * @throws ParseException   if can not parse Response Body tp Json
+     * @throws ParseException   if can not parse Response Body to Json
      * @throws AddressException if can not sent e-mail
      */
 
     @PostMapping("/api/auth/restore")
-    public String restorePassword(@RequestBody String body) throws ParseException, AddressException {
-        return authService.restorePassword(body);
+    public String restorePassword(@RequestBody String body,  HttpServletRequest request) throws ParseException, AddressException {
+        return authService.restorePassword(body, request.getLocalName());
     }
 
     /**

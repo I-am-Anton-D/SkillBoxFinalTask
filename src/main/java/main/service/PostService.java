@@ -6,10 +6,12 @@ import static main.model.ModerationStatus.NEW;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -293,6 +295,15 @@ public class PostService {
                 }
             }
 
+            ArrayList<String> tagsName = (ArrayList<String>) StreamSupport
+                .stream(tagsRepository.findAll().spliterator(), false).map(Tag::getName)
+                .collect(Collectors.toList());
+            tags.forEach(t->{
+                if (!tagsName.contains((String) t)) {
+                    tagsRepository.save(new Tag((String)t));
+                }
+            });
+
             tags.forEach(t -> tag2PostRepository.save(new Tag2Post(id, getTagIdByName((String) t))));
             response.put("result", true);
         }
@@ -541,6 +552,15 @@ public class PostService {
             post.setText(text);
             post.setViewCount(0);
             int postId = postsRepository.save(post).getId();
+            ArrayList<String> tagsName = (ArrayList<String>) StreamSupport
+                .stream(tagsRepository.findAll().spliterator(), false).map(Tag::getName)
+                .collect(Collectors.toList());
+            tags.forEach(t->{
+                if (!tagsName.contains((String) t)) {
+                    tagsRepository.save(new Tag((String)t));
+                }
+            });
+
             tags.forEach(t -> tag2PostRepository.save(new Tag2Post(postId, getTagIdByName((String) t))));
             response.put("result", true);
         }
@@ -559,7 +579,10 @@ public class PostService {
         response = new JSONObject();
 
         double maxWeight = StreamSupport.stream(tagsRepository.findAll().spliterator(), false)
-            .map(t -> calculateTagWeight(t.getId())).max(Comparator.comparing(Double::doubleValue)).get();
+            .map(Tag::getId)
+            .map(this::calculateTagWeight)
+            .max(Comparator.comparing(Double::doubleValue))
+            .orElse(0.0);
         String query = request.getParameter("query");
         JSONArray tagsArray = new JSONArray();
 
