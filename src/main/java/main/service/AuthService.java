@@ -50,11 +50,13 @@ public class AuthService {
     final static String WRONG_PASSWORD = "Пароль короче 6-ти символов";
     final static String WRONG_MAIL = "Этот e-mail уже зарегистрирован";
     final static String WRONG_PHOTO_SIZE = "Фото слишком большое, нужно не более 5 Мб";
+    final static String WRONG_CODE = "Ссылка для восстановления пароля устарела. <a href=\"/auth/restore\">Запросить ссылку снова</a>";
 
     /**
      * Avatar size in px
      */
     final static int AVATAR_SIZE = 36;
+
 
     /**
      * server email from application.yml
@@ -245,30 +247,42 @@ public class AuthService {
     }
 
     /**
-     * Changing user password
-     *
-     * @param hash MD5 of passwodd user
-     * @return JSON string result:true
-     */
-
-    public String changePassword(String hash) {
-        response = new JSONObject();
-        response.put("result", true);
-
-        return response.toJSONString();
-    }
-
-    /**
      * Validating code for restoring
      *
      * @param body of request
      * @return JSON string result:true, if all good or result:false if something wrong
      */
 
-    public String validateRestoringPassword(String body) {
+    public String validateRestoringPassword(String body) throws ParseException {
         response = new JSONObject();
-        response.put("result", true);
+        request = (JSONObject) parser.parse(body);
+        String code = (String) request.get("code");
+        String password = (String) request.get("password");
+        String captcha = (String) request.get("captcha");
+        String secret = (String) request.get("captcha_secret");
 
+        JSONObject errors = new JSONObject();
+
+        if (!Captcha.validate(captcha, secret, captchaCodesRepository)) {
+            errors.put("captcha", WRONG_CAPTCHA);
+        }
+        if (password.length() < 6) {
+            errors.put("password", WRONG_PASSWORD);
+        }
+
+        User user = usersRepository.getUserByCode(code);
+        if (user == null) {
+            errors.put("code", WRONG_CODE);
+        }
+        if (errors.size()==0) {
+            user.setPassword(Captcha.getMD5(password));
+            user.setCode(null);
+            usersRepository.save(user);
+            response.put("result", true);
+        } else {
+            response.put("result", false);
+            response.put("errors", errors);
+        }
         return response.toJSONString();
     }
 
@@ -281,7 +295,7 @@ public class AuthService {
      * @throws AddressException if can not sent email
      */
 
-    public String restorePassword(String body) throws ParseException, AddressException {
+    public String restorePassword(String body, String local) throws ParseException, AddressException {
         response = new JSONObject();
         request = (JSONObject) parser.parse(body);
         String mail = (String) request.get("email");
@@ -291,7 +305,7 @@ public class AuthService {
             User user = usersRepository.getUserByEmail(mail);
             user.setCode(code);
             usersRepository.save(user);
-            sentMail(code, mail);
+            sentMail(code, mail, local);
             response.put("result", true);
         } else {
             response.put("result", false);
@@ -304,7 +318,7 @@ public class AuthService {
      * Login the user
      *
      * @param body        or request
-     * @param httpRequest using for detectin user
+     * @param httpRequest using for detecting user
      * @return result of check() = user object if all correct, or JSON result:false if something wrong
      * @throws ParseException if can not parse string ot JSON object
      */
@@ -518,7 +532,7 @@ public class AuthService {
      * @throws AddressException if can not setn email
      */
 
-    private void sentMail(String code, String mail) throws AddressException {
+    private void sentMail(String code, String mail, String local) throws AddressException {
         mail = "antmhy@gmail.com"; //TODO Remove on real server with real users
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
@@ -537,7 +551,7 @@ public class AuthService {
         message.setFrom(String.valueOf(new InternetAddress(serverEmail)));
         message.setTo(mail);
         message.setSubject("Password restore");
-        message.setText("Hello, go to " + serverRoot + "/login/change-password/" + code);
+        message.setText("Hello, go to " + local+ "/login/change-password/" + code);
         mailSender.send(message);
     }
 

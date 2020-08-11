@@ -41,8 +41,7 @@ public class Tag {
      * constructor for creating entity
      */
 
-    public Tag(int id, @NotNull String name) {
-        this.id = id;
+    public Tag(String name) {
         this.name = name;
     }
 
