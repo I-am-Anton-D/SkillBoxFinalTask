@@ -10,10 +10,12 @@ public class Config  implements WebMvcConfigurer {
 
     private final String location = "static/upload";
 
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler(location + "/*")
-            .addResourceLocations("file:" + location + "/");
+        registry.addResourceHandler("upload/**")
+            .addResourceLocations("file:src/main/resources/static/upload/");
+
     }
 
     public String getLocation() {

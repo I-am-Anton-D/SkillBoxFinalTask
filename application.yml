@@ -3,9 +3,6 @@ spring.datasource.username: root
 spring.datasource.password: 12345678
 spring.jpa.hibernate.ddl-auto: validate
 spring.jpa.show-sql: true
-#server.error.whitelabel.enabled: false
-#spring.mvc.throw-exception-if-no-handler-found: true
-#spring.resources.add-mappings: false
 init.title: DevPub
 init.subtitle: Рассказы разработчиков
 init.phone: +7 903 666-44-55
@@ -17,4 +14,4 @@ server.email: ###
 server.email.password: ###
 server.root: http://localhost:8080
 server.port : 8080
-server.upload.path: C:/Users/Антон/Desktop/repository/SkillBoxFinalTask/src/main/resources/static/upload/
+server.upload.path: src/main/resources/static/upload/
